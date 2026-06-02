@@ -227,7 +227,7 @@ function pushUnique(items, value) {
 }
 
 function cloudItemText(item) {
-  return `${item.word || ""} ${item.original || ""} ${item.pattern || ""}`.toLowerCase();
+  return `${item.word || ""} ${item.original || ""} ${item.pattern || ""} ${item.final || ""} ${item.jyutping || ""}`.toLowerCase();
 }
 
 function semanticBundleForSearch(value) {
@@ -259,10 +259,11 @@ function semanticBundleForSearch(value) {
 }
 
 function cloudSearchScore(item, bundle) {
+  const fullText = cloudItemText(item);
   const word = `${item.word || ""} ${item.original || ""}`.toLowerCase();
-  let score = word.includes(bundle.raw) ? 600 : 0;
+  let score = fullText.includes(bundle.raw) ? 600 : 0;
   for (const term of bundle.terms) {
-    if (term !== bundle.raw && word.includes(term)) score += 260;
+    if (term !== bundle.raw && fullText.includes(term)) score += 260;
   }
   if (bundle.labels.length) {
     for (const root of bundle.roots) {
@@ -272,9 +273,13 @@ function cloudSearchScore(item, bundle) {
   return score;
 }
 
-function cloudSearchHint() {
+function cloudSearchHint(mode) {
   const bundle = semanticBundleForSearch(state.cloudSearch);
-  if (!bundle.raw) return "按官方词频排序，可用搜索或近义意图缩小范围";
+  if (!bundle.raw) {
+    return mode === "rhyme"
+      ? "按0243与韵母匹配排序，可用搜索或近义意图缩小范围"
+      : "按官方词频排序，可用搜索或近义意图缩小范围";
+  }
   if (!bundle.labels.length) return "正在按字面搜索当前词云";
   const preview = bundle.terms.filter((term) => term !== bundle.raw).slice(0, 7);
   const roots = bundle.roots.slice(0, 8).join("、");
@@ -485,6 +490,20 @@ function searchPattern(query) {
   return results.sort(sortResults);
 }
 
+function cloudResultFromEntry(entry, rank, score) {
+  return {
+    type: "cloud",
+    entry,
+    word: entry.display || entry.s || entry.t,
+    original: entry.t,
+    rank,
+    pattern: entry.p,
+    final: entry.f,
+    jyutping: entry.j,
+    score,
+  };
+}
+
 function searchRhyme(query) {
   const match = query.trim().match(/^([0243]+)(.+)$/);
   if (!match) return searchPattern(query);
@@ -501,7 +520,8 @@ function searchRhyme(query) {
       return { entry, score: finalScore ? patternScore + finalScore : 0 };
     })
     .filter((item) => item.score > 0)
-    .sort(sortResults);
+    .sort(sortResults)
+    .map((item, index) => cloudResultFromEntry(item.entry, index + 1, item.score));
 }
 
 function searchChinese(query) {
@@ -558,6 +578,10 @@ function getResults(query, mode) {
   return [];
 }
 
+function isCloudMode(mode) {
+  return mode === "pattern" || mode === "rhyme";
+}
+
 function filterCloudBySearch(results) {
   const bundle = semanticBundleForSearch(state.cloudSearch);
   if (!bundle.raw) return results;
@@ -593,7 +617,7 @@ function categoryCounts(results) {
 }
 
 function renderCloudTools(mode, rawResults) {
-  const shouldShow = mode === "pattern" && Boolean(state.query.trim()) && rawResults.some((item) => item.type === "cloud");
+  const shouldShow = isCloudMode(mode) && Boolean(state.query.trim()) && rawResults.some((item) => item.type === "cloud");
   els.cloudTools.classList.toggle("hidden", !shouldShow);
   if (!shouldShow) return;
 
@@ -607,7 +631,7 @@ function renderCloudTools(mode, rawResults) {
   const searchedResults = filterCloudBySearch(rawResults);
   const counts = categoryCounts(searchedResults);
   const categories = cloudCategoryDefs();
-  const hint = `<span class="category-hint">${escapeHtml(cloudSearchHint())}</span>`;
+  const hint = `<span class="category-hint">${escapeHtml(cloudSearchHint(mode))}</span>`;
   if (!categories.some((category) => category.id === state.cloudCategory) || (state.cloudCategory !== "all" && !counts.get(state.cloudCategory))) {
     state.cloudCategory = "all";
   }
@@ -701,7 +725,9 @@ function renderResult(item) {
 
 function renderCloudTile(item) {
   const classes = classifyCloudWord(item.word || "");
-  const title = `第 ${item.rank} 位 · ${classes.pos.join("/")} · ${classes.emotion.join("/")}`;
+  const rhyme = item.final ? ` · 韵 ${item.final}` : "";
+  const jyutping = item.jyutping ? ` · ${item.jyutping}` : "";
+  const title = `第 ${item.rank} 位 · ${item.pattern || ""}${rhyme}${jyutping} · ${classes.pos.join("/")} · ${classes.emotion.join("/")}`;
   return `
     <button class="word-tile" type="button" data-copy="${escapeHtml(item.word)}" title="${escapeHtml(title)}">
       <span>${escapeHtml(item.word)}</span>
@@ -713,19 +739,20 @@ function render() {
   if (!state.entries.length) return;
   const mode = detectQuery(state.query);
   const rawResults = getResults(state.query, mode);
-  const results = mode === "pattern" ? applyCloudFilters(rawResults) : rawResults;
+  const cloudMode = isCloudMode(mode);
+  const results = cloudMode ? applyCloudFilters(rawResults) : rawResults;
 
   els.analysis.innerHTML = queryAnalysis(state.query, mode);
   renderCloudTools(mode, rawResults);
   els.empty.classList.toggle("hidden", Boolean(state.query.trim()));
-  els.resultTitle.textContent = mode === "pattern" ? "词云" : mode === "rhyme" ? "押韵" : "结果";
+  els.resultTitle.textContent = mode === "pattern" ? "词云" : mode === "rhyme" ? "押韵词云" : "结果";
   els.resultCount.textContent =
-    state.query.trim() && mode === "pattern" && results.length !== rawResults.length
+    state.query.trim() && cloudMode && results.length !== rawResults.length
       ? `${results.length.toLocaleString()} / ${rawResults.length.toLocaleString()} 条`
       : state.query.trim()
         ? `${results.length.toLocaleString()} 条`
         : "";
-  els.results.classList.toggle("cloud-results", mode === "pattern");
+  els.results.classList.toggle("cloud-results", cloudMode);
   els.results.innerHTML = results.map(renderResult).join("");
 }
 
