@@ -22,12 +22,14 @@ const INITIALS = [
 
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
-const MAX_RESULTS = 140;
+const MAX_NON_PATTERN_RESULTS = 140;
 
 const state = {
   entries: [],
   chars: {},
   metadata: null,
+  patternIndex: new Map(),
+  maxPatternLength: 0,
   mode: "auto",
   query: "",
   loose: false,
@@ -96,6 +98,19 @@ function prepareEntry(entry, index) {
   };
 }
 
+function buildPatternIndex(entries) {
+  const index = new Map();
+  let maxLength = 0;
+  for (const entry of entries) {
+    if (!entry.p) continue;
+    maxLength = Math.max(maxLength, entry.p.length);
+    const bucket = index.get(entry.p) || [];
+    bucket.push(entry);
+    index.set(entry.p, bucket);
+  }
+  return { index, maxLength };
+}
+
 async function loadData() {
   const [lexicon, metadata] = await Promise.all([
     fetch("data/lexicon.json").then((response) => response.json()),
@@ -104,6 +119,9 @@ async function loadData() {
   state.entries = lexicon.entries.map(prepareEntry);
   state.chars = lexicon.chars || {};
   state.metadata = metadata;
+  const patternIndex = buildPatternIndex(state.entries);
+  state.patternIndex = patternIndex.index;
+  state.maxPatternLength = patternIndex.maxLength;
   els.entryCount.textContent = `${metadata.entryCount.toLocaleString()} 词条`;
   els.charCount.textContent = `${metadata.charCount.toLocaleString()} 单字`;
   render();
@@ -156,14 +174,61 @@ function scorePattern(entry, pattern) {
   return 0;
 }
 
+function addPatternResult(results, entry, score, label) {
+  const existing = results.get(entry.id);
+  if (existing) {
+    existing.score = Math.max(existing.score, score);
+    if (label && !existing.labels.includes(label)) {
+      existing.labels.push(label);
+    }
+    return;
+  }
+  results.set(entry.id, {
+    entry,
+    score,
+    labels: label ? [label] : [],
+  });
+}
+
+function patternPositionLabel(start, length) {
+  if (length === 1) return `第${start + 1}位`;
+  return `第${start + 1}-${start + length}位`;
+}
+
 function searchPattern(query) {
   const pattern = query.replace(/[^0243]/g, "");
   if (!pattern) return [];
-  return state.entries
-    .map((entry) => ({ entry, score: scorePattern(entry, pattern) }))
-    .filter((item) => item.score > 0)
-    .sort(sortResults)
-    .slice(0, MAX_RESULTS);
+  const results = new Map();
+  const exactMatches = state.patternIndex.get(pattern) || [];
+
+  for (const entry of exactMatches) {
+    addPatternResult(results, entry, 4000 - entry.l, "完整");
+  }
+
+  if (pattern.length > 1) {
+    const maxLength = Math.min(pattern.length - 1, state.maxPatternLength);
+    for (let length = maxLength; length >= 1; length -= 1) {
+      for (let start = 0; start + length <= pattern.length; start += 1) {
+        const piece = pattern.slice(start, start + length);
+        const matches = state.patternIndex.get(piece);
+        if (!matches) continue;
+        const label = patternPositionLabel(start, length);
+        for (const entry of matches) {
+          addPatternResult(results, entry, 2500 + length * 50 - start, label);
+        }
+      }
+    }
+  }
+
+  if (state.loose) {
+    for (const entry of state.entries) {
+      if (entry.p !== pattern && entry.p.includes(pattern)) {
+        addPatternResult(results, entry, scorePattern(entry, pattern), "包含");
+      }
+    }
+  }
+
+  return Array.from(results.values()).sort(sortResults);
 }
 
 function searchRhyme(query) {
@@ -182,8 +247,7 @@ function searchRhyme(query) {
       return { entry, score: finalScore ? patternScore + finalScore : 0 };
     })
     .filter((item) => item.score > 0)
-    .sort(sortResults)
-    .slice(0, MAX_RESULTS);
+    .sort(sortResults);
 }
 
 function searchChinese(query) {
@@ -200,7 +264,7 @@ function searchChinese(query) {
     })
     .filter((item) => item.score > 0)
     .sort(sortResults)
-    .slice(0, MAX_RESULTS);
+    .slice(0, MAX_NON_PATTERN_RESULTS);
 }
 
 function searchJyutping(query) {
@@ -222,13 +286,13 @@ function searchJyutping(query) {
     })
     .filter((item) => item.score > 0)
     .sort(sortResults)
-    .slice(0, MAX_RESULTS);
+    .slice(0, MAX_NON_PATTERN_RESULTS);
 }
 
 function sortResults(left, right) {
   if (right.score !== left.score) return right.score - left.score;
   if (left.entry.l !== right.entry.l) return left.entry.l - right.entry.l;
-  return left.entry.t.localeCompare(right.entry.t, "zh-Hant");
+  return left.entry.t.localeCompare(right.entry.t, "zh-Hans");
 }
 
 function getResults(query, mode) {
@@ -293,6 +357,9 @@ function renderResult(item) {
   const definition = entry.d ? `<p class="definition">${escapeHtml(entry.d)}</p>` : "";
   const sourceLabel = state.metadata?.sourceLabels?.[entry.src] || entry.src || "";
   const displayTerm = entry.display || entry.s || entry.t;
+  const matchInfo = item.labels?.length
+    ? `<span class="chip">${escapeHtml(item.labels.slice(0, 3).join(" / "))}${item.labels.length > 3 ? ` +${item.labels.length - 3}` : ""}</span>`
+    : "";
   return `
     <article class="result-card">
       <div>
@@ -300,6 +367,7 @@ function renderResult(item) {
           <span class="term">${escapeHtml(displayTerm)}</span>
           <span class="pattern">${escapeHtml(entry.p)}</span>
           <span class="chip">韵 ${escapeHtml(entry.f || "-")}</span>
+          ${matchInfo}
         </div>
         <p class="jyutping">${escapeHtml(entry.j)}</p>
         ${definition}
