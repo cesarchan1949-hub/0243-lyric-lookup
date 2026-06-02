@@ -44,7 +44,6 @@ const CLOUD_EMOTION_CATEGORIES = [
   { id: "anxious", label: "焦虑疑问" },
   { id: "hope", label: "希望理想" },
   { id: "calm", label: "安心放松" },
-  { id: "neutral", label: "日常中性" },
 ];
 const CLOUD_KEYWORDS = {
   person: ["你", "我", "他", "她", "人", "女人", "男人", "女子", "女生", "先生", "老师", "母亲", "父亲", "妈妈", "老母", "老公", "太太", "朋友", "对方", "自己", "大家", "孩子", "女的"],
@@ -63,10 +62,39 @@ const CLOUD_KEYWORDS = {
   hope: ["希望", "理想", "未来", "梦", "信心", "勇敢", "光", "最高", "最佳", "更好", "了解", "发展", "有机"],
   calm: ["放心", "放松", "安心", "安全", "温柔", "细心", "平静", "轻松", "淡", "自在"],
 };
+const CLOUD_ROOT_KEYWORDS = {
+  person: ["你", "我", "他", "她", "人", "女", "男", "师", "母", "父", "友", "子"],
+  verb: ["做", "见", "看", "听", "讲", "说", "唱", "写", "走", "来", "去", "转", "记", "想", "知", "明", "放", "发", "变", "问", "答", "承"],
+  adj: ["好", "美", "高", "低", "深", "浅", "真", "假", "正", "快", "慢", "痛", "苦", "甜", "冷", "热", "细", "敏", "勇"],
+  time: ["时", "日", "天", "年", "月", "代", "晚", "早", "昨", "今", "明", "曾", "旧", "初", "终", "永", "瞬"],
+  place: ["港", "国", "城", "街", "家", "店", "房", "海", "山", "路", "台", "世", "界", "校", "堂", "室", "洲"],
+  noun: ["心", "梦", "光", "声", "色", "影", "眼", "手", "口", "脑", "名", "字", "物", "事", "书", "片", "歌", "车"],
+  function: ["的", "了", "着", "都", "又", "也", "还", "却", "但", "而", "或", "若", "便", "就", "再", "从", "由", "对", "与"],
+  positive: ["好", "美", "喜", "乐", "欢", "笑", "甜", "福", "幸", "满", "勇", "信", "光", "成", "祝", "佳"],
+  sad: ["痛", "苦", "哭", "泪", "伤", "失", "孤", "冷", "叹", "憾", "遗", "恨", "奈", "惜", "别", "离", "忘", "缺", "酸"],
+  love: ["爱", "情", "亲", "恋", "吻", "抱", "婚", "陪", "念", "心", "友", "女", "男"],
+  memory: ["记", "忆", "怀", "念", "旧", "昔", "昨", "曾", "从", "过", "留", "初", "后"],
+  conflict: ["战", "争", "决", "绝", "放", "弃", "退", "杀", "破", "断", "敌", "怒", "冲", "压", "离", "别", "恨"],
+  anxious: ["怕", "担", "忧", "虑", "疑", "问", "困", "扰", "压", "紧", "急", "迷", "乱", "难", "奈", "究", "竟"],
+  hope: ["希", "望", "理", "想", "未", "梦", "信", "勇", "光", "机", "愿", "期", "明", "成"],
+  calm: ["安", "心", "放", "松", "静", "柔", "淡", "睡", "稳", "休", "缓", "闲"],
+};
+const SEMANTIC_TO_EMOTION = {
+  regret: "sad",
+  happy: "positive",
+  sad: "sad",
+  love: "love",
+  memory: "memory",
+  hope: "hope",
+  conflict: "conflict",
+  anxious: "anxious",
+  calm: "calm",
+};
 const SEMANTIC_GROUPS = [
   {
     id: "regret",
     label: "可惜遗憾",
+    roots: ["遗", "憾", "惜", "叹", "奈", "恨", "酸", "失"],
     terms: [
       "可惜",
       "遗憾",
@@ -88,41 +116,49 @@ const SEMANTIC_GROUPS = [
   {
     id: "happy",
     label: "开心美好",
+    roots: ["开", "心", "乐", "欢", "喜", "笑", "美", "好", "甜", "福", "满"],
     terms: ["开心", "快乐", "高兴", "欢喜", "美好", "最好", "最佳", "满足", "幸福", "甜蜜", "庆祝", "笑话", "笑声", "放心"],
   },
   {
     id: "sad",
     label: "伤感痛苦",
+    roots: ["伤", "痛", "苦", "哭", "泪", "失", "孤", "冷", "碎", "酸", "叹", "别", "离"],
     terms: ["伤感", "难过", "痛苦", "痛心", "痛哭", "眼泪", "哭泣", "失落", "孤独", "冷清", "心碎", "苦楚", "叹息"],
   },
   {
     id: "love",
     label: "情爱亲密",
+    roots: ["爱", "情", "恋", "念", "亲", "抱", "吻", "婚", "陪", "心"],
     terms: ["爱情", "喜欢", "想念", "怀念", "思念", "亲密", "约会", "结婚", "拥抱", "亲吻", "心动", "情人", "对方", "陪伴"],
   },
   {
     id: "memory",
     label: "回忆过去",
+    roots: ["记", "忆", "怀", "念", "旧", "昔", "曾", "过", "留", "初", "后"],
     terms: ["回忆", "记忆", "记得", "记起", "怀旧", "过去", "从前", "当年", "昨日", "曾经", "最初", "后来", "留下"],
   },
   {
     id: "hope",
     label: "希望理想",
+    roots: ["希", "望", "理", "想", "未", "梦", "信", "勇", "光", "愿", "期", "明"],
     terms: ["希望", "理想", "未来", "明天", "信心", "勇敢", "机会", "发展", "光明", "愿望", "期待", "梦想", "成功"],
   },
   {
-    id: "anger",
+    id: "conflict",
     label: "冲突决绝",
-    terms: ["愤怒", "生气", "冲突", "争执", "背叛", "放手", "决绝", "退出", "战争", "反抗", "破裂", "绝望", "伤害"],
+    roots: ["放", "弃", "舍", "离", "别", "断", "退", "罢", "忘", "让", "散", "决", "绝", "怒", "恨"],
+    terms: ["愤怒", "生气", "冲突", "争执", "背叛", "放手", "放弃", "不舍", "离别", "分别", "决绝", "退出", "战争", "反抗", "破裂", "绝望", "伤害"],
   },
   {
     id: "anxious",
     label: "焦虑疑问",
+    roots: ["怕", "担", "忧", "虑", "疑", "问", "困", "扰", "压", "紧", "急", "迷", "乱", "难"],
     terms: ["担心", "害怕", "焦虑", "疑问", "困扰", "压抑", "紧张", "究竟", "到底", "也许", "难道", "迷惘", "不安"],
   },
   {
     id: "calm",
     label: "安心放松",
+    roots: ["安", "心", "放", "松", "静", "柔", "淡", "睡", "稳", "休", "缓", "闲"],
     terms: ["安心", "放心", "放松", "平静", "温柔", "舒服", "自在", "安全", "休息", "睡觉", "安稳", "淡然", "从容"],
   },
 ];
@@ -182,15 +218,24 @@ function includesAny(text, words) {
   return words.some((word) => text.includes(word));
 }
 
+function categoryMatchesWord(word, category) {
+  return includesAny(word, CLOUD_KEYWORDS[category] || []) || includesAny(word, CLOUD_ROOT_KEYWORDS[category] || []);
+}
+
+function pushUnique(items, value) {
+  if (!items.includes(value)) items.push(value);
+}
+
 function cloudItemText(item) {
   return `${item.word || ""} ${item.original || ""} ${item.pattern || ""}`.toLowerCase();
 }
 
 function semanticBundleForSearch(value) {
   const raw = value.trim().toLowerCase();
-  if (!raw) return { raw: "", terms: [], labels: [] };
+  if (!raw) return { raw: "", terms: [], roots: [], labels: [] };
   const cjk = cjkOnly(raw);
   const terms = new Set([raw]);
+  const roots = new Set();
   const labels = new Set();
 
   if (cjk) terms.add(cjk);
@@ -198,22 +243,33 @@ function semanticBundleForSearch(value) {
     const hit = group.terms.some((term) => {
       const normalized = term.toLowerCase();
       return raw.includes(normalized) || normalized.includes(raw) || (cjk && (cjk.includes(term) || term.includes(cjk)));
-    });
+    }) || (cjk.length === 1 && group.roots.includes(cjk));
     if (!hit) continue;
     labels.add(group.label);
     group.terms.forEach((term) => terms.add(term.toLowerCase()));
+    group.roots.forEach((root) => roots.add(root.toLowerCase()));
   }
 
   return {
     raw,
     terms: Array.from(terms).filter((term) => term.length > 1),
+    roots: Array.from(roots).filter(Boolean),
     labels: Array.from(labels),
   };
 }
 
-function cloudItemMatchesSemanticTerms(item, terms) {
+function cloudSearchScore(item, bundle) {
   const word = `${item.word || ""} ${item.original || ""}`.toLowerCase();
-  return terms.some((term) => word.includes(term));
+  let score = word.includes(bundle.raw) ? 600 : 0;
+  for (const term of bundle.terms) {
+    if (term !== bundle.raw && word.includes(term)) score += 260;
+  }
+  if (bundle.labels.length) {
+    for (const root of bundle.roots) {
+      if (word.includes(root)) score += 48;
+    }
+  }
+  return score;
 }
 
 function cloudSearchHint() {
@@ -221,7 +277,8 @@ function cloudSearchHint() {
   if (!bundle.raw) return "按官方词频排序，可用搜索或近义意图缩小范围";
   if (!bundle.labels.length) return "正在按字面搜索当前词云";
   const preview = bundle.terms.filter((term) => term !== bundle.raw).slice(0, 7);
-  return `近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}`;
+  const roots = bundle.roots.slice(0, 8).join("、");
+  return `近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}${roots ? ` · 字根 ${roots}` : ""}`;
 }
 
 function classifyCloudWord(word) {
@@ -230,12 +287,17 @@ function classifyCloudWord(word) {
   const emotion = [];
 
   for (const category of ["function", "person", "time", "place", "verb", "adj", "noun"]) {
-    if (includesAny(word, CLOUD_KEYWORDS[category])) pos.push(category);
+    if (categoryMatchesWord(word, category)) pushUnique(pos, category);
   }
   if (!pos.length) pos.push("noun");
 
   for (const category of ["positive", "sad", "love", "memory", "conflict", "anxious", "hope", "calm"]) {
-    if (includesAny(word, CLOUD_KEYWORDS[category])) emotion.push(category);
+    if (categoryMatchesWord(word, category)) pushUnique(emotion, category);
+  }
+  for (const group of SEMANTIC_GROUPS) {
+    const category = SEMANTIC_TO_EMOTION[group.id];
+    if (!category) continue;
+    if (includesAny(word, group.terms) || includesAny(word, group.roots)) pushUnique(emotion, category);
   }
   if (!emotion.length) emotion.push("neutral");
 
@@ -499,12 +561,23 @@ function getResults(query, mode) {
 function filterCloudBySearch(results) {
   const bundle = semanticBundleForSearch(state.cloudSearch);
   if (!bundle.raw) return results;
-  return results.filter((item) => cloudItemText(item).includes(bundle.raw) || cloudItemMatchesSemanticTerms(item, bundle.terms));
+  return results
+    .map((item) => ({ ...item, semanticScore: cloudSearchScore(item, bundle) }))
+    .filter((item) => item.semanticScore > 0)
+    .sort((left, right) => {
+      if (right.semanticScore !== left.semanticScore) return right.semanticScore - left.semanticScore;
+      return left.rank - right.rank;
+    });
 }
 
 function applyCloudFilters(results) {
   const searched = filterCloudBySearch(results);
   if (state.cloudFacet === "all" || state.cloudCategory === "all") return searched;
+  const hasCategory = searched.some((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
+  if (!hasCategory) {
+    state.cloudCategory = "all";
+    return searched;
+  }
   return searched.filter((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
 }
 
@@ -535,9 +608,10 @@ function renderCloudTools(mode, rawResults) {
   const counts = categoryCounts(searchedResults);
   const categories = cloudCategoryDefs();
   const hint = `<span class="category-hint">${escapeHtml(cloudSearchHint())}</span>`;
-  if (!categories.some((category) => category.id === state.cloudCategory)) {
+  if (!categories.some((category) => category.id === state.cloudCategory) || (state.cloudCategory !== "all" && !counts.get(state.cloudCategory))) {
     state.cloudCategory = "all";
   }
+  const visibleCategories = categories.filter((category) => category.id === "all" || (counts.get(category.id) || 0) > 0);
 
   if (state.cloudFacet === "all") {
     els.cloudCategoryBar.innerHTML = hint;
@@ -545,7 +619,7 @@ function renderCloudTools(mode, rawResults) {
   }
 
   els.cloudCategoryBar.innerHTML =
-    categories
+    visibleCategories
       .map((category) => {
         const count = counts.get(category.id) || 0;
         const active = category.id === state.cloudCategory ? " active" : "";
