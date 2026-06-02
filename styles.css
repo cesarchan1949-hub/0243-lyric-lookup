@@ -305,6 +305,38 @@ h2 {
   margin-top: 12px;
 }
 
+.results.cloud-results {
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 14px;
+}
+
+.word-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 10px;
+  border: 1px solid #e1e5df;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 2px 5px rgba(31, 45, 37, 0.18);
+  font-size: 27px;
+  font-weight: 560;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.word-tile:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+  box-shadow: 0 5px 14px rgba(31, 111, 139, 0.2);
+}
+
+.word-tile span {
+  overflow-wrap: anywhere;
+}
+
 .result-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 44px;
@@ -497,6 +529,16 @@ h2 {
 
   .sample-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .results.cloud-results {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .word-tile {
+    min-height: 78px;
+    font-size: 24px;
   }
 
   .side-panel {
