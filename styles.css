@@ -67,6 +67,12 @@ body {
   line-height: 1.5;
 }
 
+:root[data-script="traditional"] body {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "PingFang TC", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
+}
+
 button,
 input {
   font: inherit;
@@ -132,7 +138,8 @@ h2 {
 }
 
 .stats span,
-.theme-toggle {
+.theme-toggle,
+.script-toggle {
   min-height: 42px;
   padding: 10px 15px;
   border: 1px solid var(--line);
@@ -142,7 +149,8 @@ h2 {
   box-shadow: 0 10px 24px rgba(32, 36, 42, 0.06);
 }
 
-.theme-toggle {
+.theme-toggle,
+.script-toggle {
   display: inline-grid;
   place-items: center;
   width: 44px;
@@ -150,6 +158,10 @@ h2 {
   color: var(--selected-text);
   background: var(--selected-bg);
   font-size: 18px;
+}
+
+.script-toggle {
+  font-weight: 760;
 }
 
 .workspace {

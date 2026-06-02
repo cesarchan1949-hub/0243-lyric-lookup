@@ -24,6 +24,643 @@ const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
 const MAX_NON_PATTERN_RESULTS = 140;
 const THEME_STORAGE_KEY = "0243-theme";
+const SCRIPT_STORAGE_KEY = "0243-script";
+const STATIC_TRADITIONAL_PAIRS = {
+  万: "萬",
+  与: "與",
+  专: "專",
+  业: "業",
+  东: "東",
+  丝: "絲",
+  丢: "丟",
+  两: "兩",
+  严: "嚴",
+  丧: "喪",
+  个: "個",
+  临: "臨",
+  为: "為",
+  义: "義",
+  乌: "烏",
+  乐: "樂",
+  习: "習",
+  书: "書",
+  买: "買",
+  乱: "亂",
+  争: "爭",
+  于: "於",
+  云: "雲",
+  亚: "亞",
+  产: "產",
+  亲: "親",
+  从: "從",
+  仑: "侖",
+  仓: "倉",
+  仪: "儀",
+  们: "們",
+  价: "價",
+  众: "眾",
+  优: "優",
+  会: "會",
+  传: "傳",
+  伤: "傷",
+  伦: "倫",
+  伪: "偽",
+  体: "體",
+  余: "餘",
+  侠: "俠",
+  侣: "侶",
+  侥: "僥",
+  侦: "偵",
+  侧: "側",
+  俩: "倆",
+  俭: "儉",
+  债: "債",
+  倾: "傾",
+  偿: "償",
+  储: "儲",
+  儿: "兒",
+  兑: "兌",
+  党: "黨",
+  兰: "蘭",
+  关: "關",
+  兴: "興",
+  养: "養",
+  兽: "獸",
+  内: "內",
+  冈: "岡",
+  册: "冊",
+  写: "寫",
+  军: "軍",
+  农: "農",
+  决: "決",
+  况: "況",
+  冻: "凍",
+  净: "淨",
+  准: "準",
+  几: "幾",
+  凤: "鳳",
+  凭: "憑",
+  凯: "凱",
+  击: "擊",
+  凿: "鑿",
+  划: "劃",
+  刘: "劉",
+  则: "則",
+  刚: "剛",
+  创: "創",
+  删: "刪",
+  别: "別",
+  剂: "劑",
+  剑: "劍",
+  剧: "劇",
+  劝: "勸",
+  办: "辦",
+  务: "務",
+  动: "動",
+  励: "勵",
+  劲: "勁",
+  劳: "勞",
+  势: "勢",
+  勋: "勳",
+  区: "區",
+  医: "醫",
+  华: "華",
+  协: "協",
+  单: "單",
+  卖: "賣",
+  卢: "盧",
+  卫: "衛",
+  厂: "廠",
+  厅: "廳",
+  历: "歷",
+  压: "壓",
+  厌: "厭",
+  厕: "廁",
+  厢: "廂",
+  厦: "廈",
+  厨: "廚",
+  县: "縣",
+  参: "參",
+  双: "雙",
+  发: "發",
+  变: "變",
+  叙: "敘",
+  叠: "疊",
+  叶: "葉",
+  号: "號",
+  叹: "嘆",
+  后: "後",
+  吓: "嚇",
+  吕: "呂",
+  吗: "嗎",
+  听: "聽",
+  启: "啟",
+  吴: "吳",
+  员: "員",
+  呗: "唄",
+  咏: "詠",
+  咙: "嚨",
+  咛: "嚀",
+  咸: "鹹",
+  响: "響",
+  哑: "啞",
+  哗: "嘩",
+  哟: "喲",
+  唤: "喚",
+  啬: "嗇",
+  啭: "囀",
+  啮: "齧",
+  啰: "囉",
+  啸: "嘯",
+  喷: "噴",
+  嗳: "噯",
+  嘘: "噓",
+  嘤: "嚶",
+  嘱: "囑",
+  团: "團",
+  园: "園",
+  围: "圍",
+  图: "圖",
+  圆: "圓",
+  圣: "聖",
+  坚: "堅",
+  坛: "壇",
+  坝: "壩",
+  坞: "塢",
+  坟: "墳",
+  坠: "墜",
+  垄: "壟",
+  垒: "壘",
+  垦: "墾",
+  垩: "堊",
+  垫: "墊",
+  垭: "埡",
+  垱: "壋",
+  垲: "塏",
+  垴: "堖",
+  埘: "塒",
+  埙: "塤",
+  埚: "堝",
+  埝: "墊",
+  埯: "垵",
+  堑: "塹",
+  堕: "墮",
+  墙: "牆",
+  壮: "壯",
+  声: "聲",
+  壳: "殼",
+  处: "處",
+  备: "備",
+  复: "復",
+  够: "夠",
+  头: "頭",
+  夹: "夾",
+  夺: "奪",
+  奋: "奮",
+  奖: "獎",
+  奥: "奧",
+  妆: "妝",
+  妇: "婦",
+  妈: "媽",
+  妩: "嫵",
+  妪: "嫗",
+  姗: "姍",
+  姜: "薑",
+  娄: "婁",
+  娅: "婭",
+  娆: "嬈",
+  娇: "嬌",
+  娈: "孌",
+  娱: "娛",
+  婴: "嬰",
+  婵: "嬋",
+  婶: "嬸",
+  媪: "媼",
+  嫒: "嬡",
+  嫔: "嬪",
+  嫱: "嬙",
+  孙: "孫",
+  学: "學",
+  宁: "寧",
+  宝: "寶",
+  实: "實",
+  宠: "寵",
+  审: "審",
+  宪: "憲",
+  宫: "宮",
+  宽: "寬",
+  宾: "賓",
+  寝: "寢",
+  对: "對",
+  寻: "尋",
+  导: "導",
+  寿: "壽",
+  将: "將",
+  尔: "爾",
+  尘: "塵",
+  尝: "嘗",
+  尧: "堯",
+  尴: "尷",
+  尸: "屍",
+  尽: "盡",
+  层: "層",
+  屉: "屜",
+  属: "屬",
+  屡: "屢",
+  岁: "歲",
+  岂: "豈",
+  岖: "嶇",
+  岗: "崗",
+  岘: "峴",
+  岚: "嵐",
+  岛: "島",
+  岭: "嶺",
+  岳: "嶽",
+  峡: "峽",
+  峣: "嶢",
+  峤: "嶠",
+  峥: "崢",
+  峦: "巒",
+  巅: "巔",
+  巩: "鞏",
+  币: "幣",
+  帅: "帥",
+  师: "師",
+  帐: "帳",
+  带: "帶",
+  帧: "幀",
+  帮: "幫",
+  帱: "幬",
+  干: "幹",
+  并: "並",
+  广: "廣",
+  庆: "慶",
+  庐: "廬",
+  庑: "廡",
+  库: "庫",
+  应: "應",
+  庙: "廟",
+  废: "廢",
+  庼: "廎",
+  开: "開",
+  异: "異",
+  弃: "棄",
+  张: "張",
+  弥: "彌",
+  弯: "彎",
+  弹: "彈",
+  强: "強",
+  归: "歸",
+  当: "當",
+  录: "錄",
+  彦: "彥",
+  彻: "徹",
+  征: "徵",
+  径: "徑",
+  徕: "徠",
+  忆: "憶",
+  忏: "懺",
+  忧: "憂",
+  忾: "愾",
+  怀: "懷",
+  态: "態",
+  怂: "慫",
+  怃: "憮",
+  怄: "慪",
+  怅: "悵",
+  怆: "愴",
+  怜: "憐",
+  总: "總",
+  恋: "戀",
+  恳: "懇",
+  恶: "惡",
+  恸: "慟",
+  恹: "懨",
+  恺: "愷",
+  恻: "惻",
+  恼: "惱",
+  悦: "悅",
+  悯: "憫",
+  惊: "驚",
+  惧: "懼",
+  惨: "慘",
+  惩: "懲",
+  惫: "憊",
+  惬: "愜",
+  惭: "慚",
+  惮: "憚",
+  惯: "慣",
+  愤: "憤",
+  愿: "願",
+  慑: "懾",
+  慭: "憖",
+  憩: "憩",
+  懒: "懶",
+  戏: "戲",
+  户: "戶",
+  扑: "撲",
+  执: "執",
+  扩: "擴",
+  扪: "捫",
+  扫: "掃",
+  扬: "揚",
+  扰: "擾",
+  抚: "撫",
+  抛: "拋",
+  抟: "摶",
+  抠: "摳",
+  抡: "掄",
+  抢: "搶",
+  护: "護",
+  报: "報",
+  担: "擔",
+  拟: "擬",
+  拢: "攏",
+  拣: "揀",
+  拥: "擁",
+  拦: "攔",
+  拧: "擰",
+  拨: "撥",
+  择: "擇",
+  挂: "掛",
+  挚: "摯",
+  挛: "攣",
+  挜: "掗",
+  挝: "撾",
+  挞: "撻",
+  挟: "挾",
+  挠: "撓",
+  挡: "擋",
+  挢: "撟",
+  挣: "掙",
+  挤: "擠",
+  挥: "揮",
+  挦: "撏",
+  挽: "輓",
+  捞: "撈",
+  损: "損",
+  捡: "撿",
+  换: "換",
+  捣: "搗",
+  据: "據",
+  掳: "擄",
+  掴: "摑",
+  掷: "擲",
+  掸: "撣",
+  掺: "摻",
+  掼: "摜",
+  揽: "攬",
+  揾: "搵",
+  揿: "撳",
+  搀: "攙",
+  搁: "擱",
+  搂: "摟",
+  搅: "攪",
+  携: "攜",
+  摄: "攝",
+  摆: "擺",
+  摇: "搖",
+  摈: "擯",
+  摊: "攤",
+  撑: "撐",
+  撵: "攆",
+  撷: "擷",
+ 撸: "擼",
+  撺: "攛",
+  擞: "擻",
+  攒: "攢",
+  敌: "敵",
+  敛: "斂",
+  数: "數",
+  斋: "齋",
+  斓: "斕",
+  斗: "鬥",
+  斩: "斬",
+  断: "斷",
+  无: "無",
+  旧: "舊",
+  时: "時",
+  旷: "曠",
+  昙: "曇",
+  昼: "晝",
+  显: "顯",
+  晋: "晉",
+  晒: "曬",
+  晓: "曉",
+  晔: "曄",
+  晕: "暈",
+  暂: "暫",
+  暧: "曖",
+  术: "術",
+  机: "機",
+  杀: "殺",
+  杂: "雜",
+  权: "權",
+  杆: "桿",
+  条: "條",
+  来: "來",
+  杨: "楊",
+  杩: "榪",
+  杰: "傑",
+  极: "極",
+  构: "構",
+  枞: "樅",
+  枢: "樞",
+  枣: "棗",
+  枥: "櫪",
+  枧: "梘",
+  枨: "棖",
+  枪: "槍",
+  枫: "楓",
+  枭: "梟",
+  柜: "櫃",
+  柠: "檸",
+  柽: "檉",
+  栀: "梔",
+  栅: "柵",
+  标: "標",
+  栈: "棧",
+  栉: "櫛",
+  栊: "櫳",
+  栋: "棟",
+  栌: "櫨",
+  栎: "櫟",
+  栏: "欄",
+  树: "樹",
+  栖: "棲",
+  样: "樣",
+  栾: "欒",
+  桠: "椏",
+  桡: "橈",
+  桢: "楨",
+  档: "檔",
+  桤: "榿",
+  桥: "橋",
+  桦: "樺",
+  桧: "檜",
+  桨: "槳",
+  桩: "樁",
+  梦: "夢",
+  梼: "檮",
+  梾: "棶",
+  检: "檢",
+  棂: "欞",
+  椁: "槨",
+  椟: "櫝",
+  椠: "槧",
+  椤: "欏",
+  楼: "樓",
+  榄: "欖",
+  榅: "榲",
+  榇: "櫬",
+  榈: "櫚",
+  榉: "櫸",
+  槚: "檟",
+  槛: "檻",
+  槟: "檳",
+  槠: "櫧",
+  横: "橫",
+  樯: "檣",
+  樱: "櫻",
+  橥: "櫫",
+  橱: "櫥",
+  橹: "櫓",
+  橼: "櫞",
+  檐: "簷",
+  欠: "欠",
+  欧: "歐",
+  欤: "歟",
+  欢: "歡",
+  步: "步",
+  歼: "殲",
+  殁: "歿",
+  殇: "殤",
+  残: "殘",
+  殒: "殞",
+  殓: "殮",
+  殚: "殫",
+  殡: "殯",
+  殴: "毆",
+  毕: "畢",
+  毙: "斃",
+  毡: "氈",
+  毵: "毿",
+  气: "氣",
+  氢: "氫",
+  氩: "氬",
+  氲: "氳",
+  汉: "漢",
+  汤: "湯",
+  汹: "洶",
+  沟: "溝",
+  没: "沒",
+  沣: "灃",
+  沤: "漚",
+  沥: "瀝",
+  沦: "淪",
+  沧: "滄",
+  沨: "渢",
+  沪: "滬",
+  泞: "濘",
+  泪: "淚",
+  泶: "澩",
+  泷: "瀧",
+  泸: "瀘",
+  泺: "濼",
+  泻: "瀉",
+  泼: "潑",
+  泽: "澤",
+  泾: "涇",
+  洁: "潔",
+  洒: "灑",
+  洼: "窪",
+  浅: "淺",
+  浆: "漿",
+  浇: "澆",
+  浈: "湞",
+  浊: "濁",
+  测: "測",
+  济: "濟",
+  浏: "瀏",
+  浑: "渾",
+  浒: "滸",
+  浓: "濃",
+  浔: "潯",
+  涛: "濤",
+  涝: "澇",
+  涞: "淶",
+  涟: "漣",
+  涠: "潿",
+  涡: "渦",
+  涢: "溳",
+  涣: "渙",
+  涤: "滌",
+  润: "潤",
+  涧: "澗",
+  涨: "漲",
+  涩: "澀",
+  淀: "澱",
+  渊: "淵",
+  渌: "淥",
+  渍: "漬",
+  渎: "瀆",
+  渐: "漸",
+  渑: "澠",
+  渔: "漁",
+  渗: "滲",
+  温: "溫",
+  游: "遊",
+  湾: "灣",
+  湿: "濕",
+  溃: "潰",
+  溅: "濺",
+  滚: "滾",
+  滞: "滯",
+  满: "滿",
+  滤: "濾",
+  滥: "濫",
+  滨: "濱",
+  滩: "灘",
+  潇: "瀟",
+  语: "語",
+  词: "詞",
+  粤: "粵",
+  韵: "韻",
+  简: "簡",
+  搜: "搜",
+  索: "索",
+  筛: "篩",
+  选: "選",
+  类: "類",
+  绪: "緒",
+  频: "頻",
+  序: "序",
+  缩: "縮",
+  范: "範",
+  输: "輸",
+  询: "詢",
+  项: "項",
+  读: "讀",
+  载: "載",
+  败: "敗",
+  复: "複",
+  制: "製",
+  里: "裡",
+  么: "麼",
+  这: "這",
+  那: "那",
+  还: "還",
+  觉: "覺",
+  记: "記",
+  结: "結",
+  婚: "婚",
+  开: "開",
+  发: "發",
+  遗: "遺",
+  憾: "憾",
+};
+const TRADITIONAL_IDENTITY_OVERRIDES = ["查"];
+
 const CLOUD_POS_CATEGORIES = [
   { id: "all", label: "全部" },
   { id: "person", label: "人物关系" },
@@ -174,6 +811,9 @@ const state = {
   cloudFacet: "all",
   cloudCategory: "all",
   theme: "light",
+  script: "simplified",
+  toSimplified: new Map(),
+  toTraditional: new Map(),
   mode: "auto",
   query: "",
   loose: false,
@@ -185,6 +825,7 @@ const els = {
   clear: document.querySelector("#clearButton"),
   entryCount: document.querySelector("#entryCount"),
   charCount: document.querySelector("#charCount"),
+  scriptToggle: document.querySelector("#scriptToggle"),
   themeToggle: document.querySelector("#themeToggle"),
   resultTitle: document.querySelector("#resultTitle"),
   resultCount: document.querySelector("#resultCount"),
@@ -214,12 +855,150 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function registerScriptPair(simplified, traditional) {
+  if (!simplified || !traditional || simplified === traditional) return;
+  state.toTraditional.set(simplified, traditional);
+  state.toSimplified.set(traditional, simplified);
+}
+
+function registerStringVariants(simplified, traditional) {
+  if (!simplified || !traditional || simplified.length !== traditional.length) return;
+  for (let index = 0; index < simplified.length; index += 1) {
+    registerScriptPair(simplified[index], traditional[index]);
+  }
+}
+
+function buildScriptMaps(entries, officialPatterns) {
+  state.toSimplified.clear();
+  state.toTraditional.clear();
+  for (const [simplified, traditional] of Object.entries(STATIC_TRADITIONAL_PAIRS)) {
+    registerScriptPair(simplified, traditional);
+  }
+  entries.forEach((entry) => registerStringVariants(entry.s || "", entry.t || ""));
+  Object.values(officialPatterns || {})
+    .flat()
+    .forEach((word) => registerStringVariants(word.s || "", word.t || ""));
+  TRADITIONAL_IDENTITY_OVERRIDES.forEach((char) => state.toTraditional.set(char, char));
+  cloudClassCache.clear();
+}
+
+function convertScriptText(value, target) {
+  const source = String(value || "");
+  const map = target === "traditional" ? state.toTraditional : state.toSimplified;
+  return Array.from(source, (char) => map.get(char) || char).join("");
+}
+
+function simplifyText(value) {
+  return convertScriptText(value, "simplified");
+}
+
+function traditionalizeText(value) {
+  return convertScriptText(value, "traditional");
+}
+
+function scriptText(value) {
+  return state.script === "traditional" ? traditionalizeText(value) : simplifyText(value);
+}
+
+function displayEntryTerm(entry) {
+  if (state.script === "traditional") return entry.t || traditionalizeText(entry.s || "");
+  return entry.s || simplifyText(entry.t || "");
+}
+
+function displayCloudWord(simplified, traditional) {
+  if (state.script === "traditional") return traditional || traditionalizeText(simplified || "");
+  return simplified || simplifyText(traditional || "");
+}
+
+function scriptVariants(value) {
+  const variants = new Set();
+  const text = String(value || "");
+  if (!text) return variants;
+  variants.add(text);
+  variants.add(simplifyText(text));
+  variants.add(traditionalizeText(text));
+  return variants;
+}
+
+function readingsForChar(char) {
+  const readings = [];
+  const seen = new Set();
+  for (const variant of scriptVariants(char)) {
+    for (const reading of state.chars[variant] || []) {
+      const key = `${reading.j}-${reading.p}-${reading.f}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      readings.push(reading);
+    }
+  }
+  return readings;
+}
+
+function updateStaticText() {
+  document.documentElement.lang = state.script === "traditional" ? "zh-Hant" : "zh-Hans";
+  document.documentElement.dataset.script = state.script;
+  document.title = scriptText("0243 粤语查字");
+
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.dataset.sourceText ||= node.textContent;
+    node.textContent = scriptText(node.dataset.sourceText);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.dataset.sourcePlaceholder ||= node.getAttribute("placeholder") || "";
+    node.setAttribute("placeholder", scriptText(node.dataset.sourcePlaceholder));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    node.dataset.sourceTitle ||= node.getAttribute("title") || "";
+    node.setAttribute("title", scriptText(node.dataset.sourceTitle));
+  });
+  document.querySelectorAll("[data-i18n-aria]").forEach((node) => {
+    node.dataset.sourceAria ||= node.getAttribute("aria-label") || "";
+    node.setAttribute("aria-label", scriptText(node.dataset.sourceAria));
+  });
+  els.samples.forEach((button) => {
+    button.textContent = scriptText(button.dataset.query);
+  });
+}
+
+function updateStats() {
+  if (!state.metadata) return;
+  els.entryCount.textContent = scriptText(`${state.metadata.entryCount.toLocaleString()} 词条`);
+  els.charCount.textContent = scriptText(`${state.metadata.charCount.toLocaleString()} 单字`);
+}
+
+function applyScript(script, options = {}) {
+  state.script = script === "traditional" ? "traditional" : "simplified";
+  updateStaticText();
+  updateStats();
+  if (els.scriptToggle) {
+    const nextLabel = state.script === "traditional" ? "简" : "繁";
+    const title = state.script === "traditional" ? "切换简体显示" : "切换繁体显示";
+    els.scriptToggle.textContent = scriptText(nextLabel);
+    els.scriptToggle.title = scriptText(title);
+    els.scriptToggle.setAttribute("aria-label", scriptText(title));
+  }
+  if (options.convertInputs) {
+    state.query = scriptText(state.query);
+    state.cloudSearch = scriptText(state.cloudSearch);
+    els.input.value = state.query;
+    els.cloudSearch.value = state.cloudSearch;
+  }
+  applyTheme(state.theme);
+  render();
+}
+
+function initScript() {
+  const saved = window.localStorage.getItem(SCRIPT_STORAGE_KEY);
+  applyScript(saved === "traditional" ? "traditional" : "simplified");
+}
+
 function includesAny(text, words) {
   return words.some((word) => text.includes(word));
 }
 
 function categoryMatchesWord(word, category) {
-  return includesAny(word, CLOUD_KEYWORDS[category] || []) || includesAny(word, CLOUD_ROOT_KEYWORDS[category] || []);
+  const normalized = simplifyText(word);
+  return includesAny(normalized, CLOUD_KEYWORDS[category] || []) || includesAny(normalized, CLOUD_ROOT_KEYWORDS[category] || []);
 }
 
 function pushUnique(items, value) {
@@ -227,11 +1006,13 @@ function pushUnique(items, value) {
 }
 
 function cloudItemText(item) {
-  return `${item.word || ""} ${item.original || ""} ${item.pattern || ""} ${item.final || ""} ${item.jyutping || ""}`.toLowerCase();
+  return simplifyText(
+    `${item.word || ""} ${item.simplified || ""} ${item.traditional || ""} ${item.original || ""} ${item.pattern || ""} ${item.final || ""} ${item.jyutping || ""}`,
+  ).toLowerCase();
 }
 
 function semanticBundleForSearch(value) {
-  const raw = value.trim().toLowerCase();
+  const raw = simplifyText(value).trim().toLowerCase();
   if (!raw) return { raw: "", terms: [], roots: [], labels: [] };
   const cjk = cjkOnly(raw);
   const terms = new Set([raw]);
@@ -260,7 +1041,7 @@ function semanticBundleForSearch(value) {
 
 function cloudSearchScore(item, bundle) {
   const fullText = cloudItemText(item);
-  const word = `${item.word || ""} ${item.original || ""}`.toLowerCase();
+  const word = simplifyText(`${item.word || ""} ${item.simplified || ""} ${item.traditional || ""} ${item.original || ""}`).toLowerCase();
   let score = fullText.includes(bundle.raw) ? 600 : 0;
   for (const term of bundle.terms) {
     if (term !== bundle.raw && fullText.includes(term)) score += 260;
@@ -276,18 +1057,19 @@ function cloudSearchScore(item, bundle) {
 function cloudSearchHint(mode) {
   const bundle = semanticBundleForSearch(state.cloudSearch);
   if (!bundle.raw) {
-    return mode === "rhyme"
+    return scriptText(mode === "rhyme"
       ? "按0243与韵母匹配排序，可用搜索或近义意图缩小范围"
-      : "按官方词频排序，可用搜索或近义意图缩小范围";
+      : "按官方词频排序，可用搜索或近义意图缩小范围");
   }
-  if (!bundle.labels.length) return "正在按字面搜索当前词云";
+  if (!bundle.labels.length) return scriptText("正在按字面搜索当前词云");
   const preview = bundle.terms.filter((term) => term !== bundle.raw).slice(0, 7);
   const roots = bundle.roots.slice(0, 8).join("、");
-  return `近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}${roots ? ` · 字根 ${roots}` : ""}`;
+  return scriptText(`近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}${roots ? ` · 字根 ${roots}` : ""}`);
 }
 
 function classifyCloudWord(word) {
-  if (cloudClassCache.has(word)) return cloudClassCache.get(word);
+  const cacheKey = simplifyText(word);
+  if (cloudClassCache.has(cacheKey)) return cloudClassCache.get(cacheKey);
   const pos = [];
   const emotion = [];
 
@@ -307,7 +1089,7 @@ function classifyCloudWord(word) {
   if (!emotion.length) emotion.push("neutral");
 
   const result = { pos, emotion };
-  cloudClassCache.set(word, result);
+  cloudClassCache.set(cacheKey, result);
   return result;
 }
 
@@ -319,9 +1101,9 @@ function cloudCategoriesFor(item, facet) {
 }
 
 function cloudCategoryDefs() {
-  if (state.cloudFacet === "pos") return CLOUD_POS_CATEGORIES;
-  if (state.cloudFacet === "emotion") return CLOUD_EMOTION_CATEGORIES;
-  return [{ id: "all", label: "全部" }];
+  if (state.cloudFacet === "pos") return CLOUD_POS_CATEGORIES.map((category) => ({ ...category, label: scriptText(category.label) }));
+  if (state.cloudFacet === "emotion") return CLOUD_EMOTION_CATEGORIES.map((category) => ({ ...category, label: scriptText(category.label) }));
+  return [{ id: "all", label: scriptText("全部") }];
 }
 
 function finalForSyllable(syllable) {
@@ -349,7 +1131,7 @@ function applyTheme(theme) {
   document.documentElement.style.colorScheme = state.theme;
   if (!els.themeToggle) return;
   els.themeToggle.textContent = state.theme === "dark" ? "☀" : "☾";
-  els.themeToggle.title = state.theme === "dark" ? "切换浅色模式" : "切换深色模式";
+  els.themeToggle.title = scriptText(state.theme === "dark" ? "切换浅色模式" : "切换深色模式");
   els.themeToggle.setAttribute("aria-label", els.themeToggle.title);
 }
 
@@ -363,12 +1145,13 @@ function prepareEntry(entry, index) {
   const simplified = entry.s || "";
   const jyutping = entry.j || "";
   const noTone = jyutping.replace(/[1-6]/g, "");
+  const simplifiedTerm = simplifyText(term || simplified);
+  const traditionalTerm = traditionalizeText(simplified || term);
   return {
     ...entry,
     id: index,
-    pure: cjkOnly(`${term}${simplified}`),
-    display: simplified || term,
-    q: `${term} ${simplified} ${jyutping} ${noTone} ${entry.p || ""} ${entry.f || ""}`.toLowerCase(),
+    pure: cjkOnly(`${term}${simplified}${simplifiedTerm}${traditionalTerm}`),
+    q: `${term} ${simplified} ${simplifiedTerm} ${traditionalTerm} ${jyutping} ${noTone} ${entry.p || ""} ${entry.f || ""}`.toLowerCase(),
     jNoTone: noTone,
   };
 }
@@ -390,13 +1173,14 @@ async function loadData() {
     fetch("data/metadata.json").then((response) => response.json()),
     fetch("data/official-cloud.json").then((response) => response.json()).catch(() => ({ patterns: {} })),
   ]);
-  state.entries = lexicon.entries.map(prepareEntry);
   state.chars = lexicon.chars || {};
   state.metadata = metadata;
   state.officialCloud = officialCloud.patterns || {};
+  buildScriptMaps(lexicon.entries, state.officialCloud);
+  state.entries = lexicon.entries.map(prepareEntry);
   state.patternIndex = buildPatternIndex(state.entries);
-  els.entryCount.textContent = `${metadata.entryCount.toLocaleString()} 词条`;
-  els.charCount.textContent = `${metadata.charCount.toLocaleString()} 单字`;
+  updateStats();
+  applyScript(state.script);
   render();
 }
 
@@ -425,7 +1209,7 @@ function finalsFromSuffix(suffix) {
   if (CJK_RE.test(cleaned)) {
     CJK_RE.lastIndex = 0;
     for (const char of cjkOnly(cleaned)) {
-      const readings = state.chars[char] || [];
+      const readings = readingsForChar(char);
       readings.forEach((reading) => {
         if (reading.f) finals.add(reading.f);
       });
@@ -454,8 +1238,10 @@ function searchPattern(query) {
   if (official?.length) {
     return official.map((word) => ({
       type: "cloud",
-      word: word.s || word.t,
-      original: word.t,
+      word: displayCloudWord(word.s, word.t),
+      simplified: word.s || simplifyText(word.t || ""),
+      traditional: word.t || traditionalizeText(word.s || ""),
+      original: word.t || word.s,
       rank: word.rank,
       pattern,
       score: 5000 - word.rank,
@@ -465,8 +1251,10 @@ function searchPattern(query) {
   const results = (state.patternIndex.get(pattern) || []).map((entry, index) => ({
     type: "cloud",
     entry,
-    word: entry.display || entry.s || entry.t,
-    original: entry.t,
+    word: displayEntryTerm(entry),
+    simplified: entry.s || simplifyText(entry.t || ""),
+    traditional: entry.t || traditionalizeText(entry.s || ""),
+    original: entry.t || entry.s,
     rank: index + 1,
     pattern,
     score: 2500 - index,
@@ -477,8 +1265,10 @@ function searchPattern(query) {
         results.push({
           type: "cloud",
           entry,
-          word: entry.display || entry.s || entry.t,
-          original: entry.t,
+          word: displayEntryTerm(entry),
+          simplified: entry.s || simplifyText(entry.t || ""),
+          traditional: entry.t || traditionalizeText(entry.s || ""),
+          original: entry.t || entry.s,
           rank: results.length + 1,
           pattern: entry.p,
           score: scorePattern(entry, pattern),
@@ -494,8 +1284,10 @@ function cloudResultFromEntry(entry, rank, score) {
   return {
     type: "cloud",
     entry,
-    word: entry.display || entry.s || entry.t,
-    original: entry.t,
+    word: displayEntryTerm(entry),
+    simplified: entry.s || simplifyText(entry.t || ""),
+    traditional: entry.t || traditionalizeText(entry.s || ""),
+    original: entry.t || entry.s,
     rank,
     pattern: entry.p,
     final: entry.f,
@@ -527,13 +1319,16 @@ function searchRhyme(query) {
 function searchChinese(query) {
   const needle = cjkOnly(query);
   if (!needle) return [];
+  const needles = Array.from(scriptVariants(needle)).filter(Boolean);
+  const normalizedNeedle = simplifyText(needle);
   return state.entries
     .map((entry) => {
       let score = 0;
-      if (entry.t === needle || entry.s === needle) score = 1200;
-      else if (entry.t.startsWith(needle) || entry.s.startsWith(needle)) score = 930;
-      else if (entry.t.includes(needle) || entry.s.includes(needle)) score = 760;
-      else if ([...needle].every((char) => entry.pure.includes(char))) score = 420;
+      const entryTexts = [entry.t || "", entry.s || "", simplifyText(entry.t || ""), traditionalizeText(entry.s || "")].filter(Boolean);
+      if (entryTexts.some((text) => needles.includes(text))) score = 1200;
+      else if (entryTexts.some((text) => needles.some((value) => text.startsWith(value)))) score = 930;
+      else if (entryTexts.some((text) => needles.some((value) => text.includes(value)))) score = 760;
+      else if ([...normalizedNeedle].every((char) => simplifyText(entry.pure).includes(char))) score = 420;
       return { entry, score: score - entry.l };
     })
     .filter((item) => item.score > 0)
@@ -658,15 +1453,16 @@ function charAnalysis(query) {
   const chips = [];
   const pattern = [];
   for (const char of chars) {
-    const readings = state.chars[char] || [];
+    const readings = readingsForChar(char);
+    const displayChar = scriptText(char);
     if (!readings.length) {
-      chips.push(`<span class="chip warn"><strong>${escapeHtml(char)}</strong>未收录</span>`);
+      chips.push(`<span class="chip warn"><strong>${escapeHtml(displayChar)}</strong>${escapeHtml(scriptText("未收录"))}</span>`);
       continue;
     }
     const best = readings[0];
     pattern.push(best.p);
     chips.push(
-      `<span class="chip"><strong>${escapeHtml(char)}</strong>${escapeHtml(best.j)} · ${escapeHtml(best.p)} · ${escapeHtml(best.f)}</span>`,
+      `<span class="chip"><strong>${escapeHtml(displayChar)}</strong>${escapeHtml(best.j)} · ${escapeHtml(best.p)} · ${escapeHtml(best.f)}</span>`,
     );
   }
   const patternChip = pattern.length
@@ -681,13 +1477,13 @@ function queryAnalysis(query, mode) {
   if (mode === "chinese") return charAnalysis(trimmed);
   if (mode === "pattern") {
     const pattern = trimmed.replace(/[^0243]/g, "");
-    return `<div class="analysis-line"><span class="chip"><strong>0243</strong>${escapeHtml(pattern)}</span><span class="chip"><strong>字数</strong>${pattern.length}</span></div>`;
+    return `<div class="analysis-line"><span class="chip"><strong>0243</strong>${escapeHtml(pattern)}</span><span class="chip"><strong>${escapeHtml(scriptText("字数"))}</strong>${pattern.length}</span></div>`;
   }
   if (mode === "rhyme") {
     const match = trimmed.match(/^([0243]+)(.+)$/);
     if (!match) return "";
     const finals = Array.from(finalsFromSuffix(match[2]));
-    return `<div class="analysis-line"><span class="chip"><strong>0243</strong>${escapeHtml(match[1])}</span><span class="chip"><strong>韵</strong>${escapeHtml(finals.join(" / ") || match[2])}</span></div>`;
+    return `<div class="analysis-line"><span class="chip"><strong>0243</strong>${escapeHtml(match[1])}</span><span class="chip"><strong>${escapeHtml(scriptText("韵"))}</strong>${escapeHtml(finals.join(" / ") || scriptText(match[2]))}</span></div>`;
   }
   if (mode === "jyutping") {
     const syllables = normalizeLatin(trimmed).split(/\s+/).filter(Boolean);
@@ -705,14 +1501,14 @@ function renderResult(item) {
   const entry = item.entry;
   const definition = entry.d ? `<p class="definition">${escapeHtml(entry.d)}</p>` : "";
   const sourceLabel = state.metadata?.sourceLabels?.[entry.src] || entry.src || "";
-  const displayTerm = entry.display || entry.s || entry.t;
+  const displayTerm = displayEntryTerm(entry);
   return `
     <article class="result-card">
       <div>
         <div class="term-row">
           <span class="term">${escapeHtml(displayTerm)}</span>
           <span class="pattern">${escapeHtml(entry.p)}</span>
-          <span class="chip">韵 ${escapeHtml(entry.f || "-")}</span>
+          <span class="chip">${escapeHtml(scriptText("韵"))} ${escapeHtml(entry.f || "-")}</span>
         </div>
         <p class="jyutping">${escapeHtml(entry.j)}</p>
         ${definition}
@@ -725,9 +1521,9 @@ function renderResult(item) {
 
 function renderCloudTile(item) {
   const classes = classifyCloudWord(item.word || "");
-  const rhyme = item.final ? ` · 韵 ${item.final}` : "";
+  const rhyme = item.final ? ` · ${scriptText("韵")} ${item.final}` : "";
   const jyutping = item.jyutping ? ` · ${item.jyutping}` : "";
-  const title = `第 ${item.rank} 位 · ${item.pattern || ""}${rhyme}${jyutping} · ${classes.pos.join("/")} · ${classes.emotion.join("/")}`;
+  const title = scriptText(`第 ${item.rank} 位 · ${item.pattern || ""}${rhyme}${jyutping} · ${classes.pos.join("/")} · ${classes.emotion.join("/")}`);
   return `
     <button class="word-tile" type="button" data-copy="${escapeHtml(item.word)}" title="${escapeHtml(title)}">
       <span>${escapeHtml(item.word)}</span>
@@ -745,12 +1541,12 @@ function render() {
   els.analysis.innerHTML = queryAnalysis(state.query, mode);
   renderCloudTools(mode, rawResults);
   els.empty.classList.toggle("hidden", Boolean(state.query.trim()));
-  els.resultTitle.textContent = mode === "pattern" ? "词云" : mode === "rhyme" ? "押韵词云" : "结果";
+  els.resultTitle.textContent = scriptText(mode === "pattern" ? "词云" : mode === "rhyme" ? "押韵词云" : "结果");
   els.resultCount.textContent =
     state.query.trim() && cloudMode && results.length !== rawResults.length
-      ? `${results.length.toLocaleString()} / ${rawResults.length.toLocaleString()} 条`
+      ? scriptText(`${results.length.toLocaleString()} / ${rawResults.length.toLocaleString()} 条`)
       : state.query.trim()
-        ? `${results.length.toLocaleString()} 条`
+        ? scriptText(`${results.length.toLocaleString()} 条`)
         : "";
   els.results.classList.toggle("cloud-results", cloudMode);
   els.results.innerHTML = results.map(renderResult).join("");
@@ -785,6 +1581,12 @@ els.themeToggle?.addEventListener("click", () => {
   const nextTheme = state.theme === "dark" ? "light" : "dark";
   window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   applyTheme(nextTheme);
+});
+
+els.scriptToggle?.addEventListener("click", () => {
+  const nextScript = state.script === "traditional" ? "simplified" : "traditional";
+  window.localStorage.setItem(SCRIPT_STORAGE_KEY, nextScript);
+  applyScript(nextScript, { convertInputs: true });
 });
 
 els.loose.addEventListener("change", (event) => {
@@ -825,7 +1627,7 @@ els.segments.forEach((button) => {
 
 els.samples.forEach((button) => {
   button.addEventListener("click", () => {
-    state.query = button.dataset.query;
+    state.query = scriptText(button.dataset.query);
     els.input.value = state.query;
     els.input.focus();
     render();
@@ -852,7 +1654,8 @@ els.results.addEventListener("click", async (event) => {
 });
 
 initTheme();
+initScript();
 loadData().catch((error) => {
-  els.entryCount.textContent = "载入失败";
+  els.entryCount.textContent = scriptText("载入失败");
   els.analysis.innerHTML = `<span class="chip warn">${escapeHtml(error.message)}</span>`;
 });
