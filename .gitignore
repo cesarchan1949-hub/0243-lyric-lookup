@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+dist/
+.tmp/
+.cache/
+0243-desktop.png
+0243-mobile.png

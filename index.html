@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="0243 Cantonese lyric lookup with Jyutping, rhyme, and tone-bucket search."
+    />
+    <title>0243 粤语查字</title>
+    <link rel="icon" href="assets/tone-map.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-art" src="assets/tone-map.png" alt="" />
+          <div>
+            <p class="eyebrow">Cantonese lyric lookup</p>
+            <h1>0243 粤语查字</h1>
+          </div>
+        </div>
+        <div class="stats" aria-live="polite">
+          <span id="entryCount">载入中</span>
+          <span id="charCount"></span>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="search-panel" aria-label="查字工作台">
+          <div class="search-box">
+            <input
+              id="queryInput"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="33 / 33ong / 33当 / 先生 / syut"
+              aria-label="输入查询"
+            />
+            <button class="icon-button" id="clearButton" type="button" title="清空">
+              ×
+            </button>
+          </div>
+
+          <div class="control-row">
+            <div class="segmented" role="tablist" aria-label="查询模式">
+              <button class="segment active" type="button" data-mode="auto">自动</button>
+              <button class="segment" type="button" data-mode="pattern">0243</button>
+              <button class="segment" type="button" data-mode="rhyme">押韵</button>
+              <button class="segment" type="button" data-mode="chinese">汉字</button>
+              <button class="segment" type="button" data-mode="jyutping">粤拼</button>
+            </div>
+            <label class="toggle">
+              <input id="looseToggle" type="checkbox" />
+              <span>宽松包含</span>
+            </label>
+          </div>
+
+          <div id="analysisPanel" class="analysis-panel" aria-live="polite"></div>
+
+          <div class="result-head">
+            <h2 id="resultTitle">结果</h2>
+            <span id="resultCount"></span>
+          </div>
+
+          <div id="emptyState" class="empty-state">
+            <div class="sample-grid">
+              <button type="button" data-query="33">33</button>
+              <button type="button" data-query="3434">3434</button>
+              <button type="button" data-query="33ong">33ong</button>
+              <button type="button" data-query="33当">33当</button>
+              <button type="button" data-query="先生">先生</button>
+              <button type="button" data-query="syut">syut</button>
+            </div>
+          </div>
+
+          <div id="results" class="results" aria-live="polite"></div>
+        </section>
+
+        <aside class="side-panel" aria-label="声调参照">
+          <figure class="tone-figure">
+            <img src="assets/tone-map.png" alt="0243 tone map" />
+          </figure>
+
+          <section class="tone-reference">
+            <h2>声调</h2>
+            <div class="tone-grid">
+              <div><strong>3</strong><span>1 / 2</span></div>
+              <div><strong>4</strong><span>3 / 5</span></div>
+              <div><strong>0</strong><span>4</span></div>
+              <div><strong>2</strong><span>6</span></div>
+            </div>
+          </section>
+
+          <section class="source-note">
+            <h2>来源</h2>
+            <p>
+              词条来自 CC-Canto 与 CC-CEDICT Cantonese readings，依
+              CC BY-SA 3.0 授权公开。0243 分桶由粤拼声调本地生成。
+            </p>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "generated": "2026-06-02",
+  "entryCount": 133436,
+  "wordEntryCount": 126539,
+  "charCount": 9670,
+  "sources": [
+    {
+      "name": "CC-Canto",
+      "url": "https://cccanto.org/download.html",
+      "license": "Creative Commons Attribution-ShareAlike 3.0"
+    },
+    {
+      "name": "CC-CEDICT Cantonese readings",
+      "url": "https://cccanto.org/download.html",
+      "license": "Creative Commons Attribution-ShareAlike 3.0"
+    }
+  ],
+  "toneMapping": {
+    "1": "3",
+    "2": "3",
+    "3": "4",
+    "4": "0",
+    "5": "4",
+    "6": "2"
+  },
+  "sourceLabels": {
+    "canto": "CC-Canto",
+    "readings": "CC-CEDICT Cantonese readings",
+    "both": "CC-Canto + CC-CEDICT",
+    "derived": "开放读音派生"
+  }
+}
