@@ -25,6 +25,9 @@
         <div class="stats" aria-live="polite">
           <span id="entryCount">载入中</span>
           <span id="charCount"></span>
+          <button class="theme-toggle" id="themeToggle" type="button" title="切换深色模式" aria-label="切换深色模式">
+            ◐
+          </button>
         </div>
       </header>
 
@@ -67,8 +70,8 @@
                 type="search"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="在当前词云里搜索"
-                aria-label="在当前词云里搜索"
+                placeholder="搜索 / 近义意图，例如：可惜"
+                aria-label="在当前词云里搜索或输入近义意图"
               />
               <button class="icon-button" id="clearCloudSearchButton" type="button" title="清空词云搜索">
                 ×
@@ -121,8 +124,8 @@
           <section class="source-note">
             <h2>来源</h2>
             <p>
-              词条来自 CC-Canto 与 CC-CEDICT Cantonese readings，依
-              CC BY-SA 3.0 授权公开。0243 分桶由粤拼声调本地生成。
+              数字词云优先使用 0243.hk 公开接口缓存；基础查词来自 CC-Canto 与
+              CC-CEDICT Cantonese readings，依 CC BY-SA 3.0 授权公开。
             </p>
           </section>
         </aside>

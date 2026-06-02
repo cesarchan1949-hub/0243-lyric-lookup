@@ -23,6 +23,7 @@ const INITIALS = [
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
 const MAX_NON_PATTERN_RESULTS = 140;
+const THEME_STORAGE_KEY = "0243-theme";
 const CLOUD_POS_CATEGORIES = [
   { id: "all", label: "全部" },
   { id: "person", label: "人物关系" },
@@ -62,6 +63,69 @@ const CLOUD_KEYWORDS = {
   hope: ["希望", "理想", "未来", "梦", "信心", "勇敢", "光", "最高", "最佳", "更好", "了解", "发展", "有机"],
   calm: ["放心", "放松", "安心", "安全", "温柔", "细心", "平静", "轻松", "淡", "自在"],
 };
+const SEMANTIC_GROUPS = [
+  {
+    id: "regret",
+    label: "可惜遗憾",
+    terms: [
+      "可惜",
+      "遗憾",
+      "无憾",
+      "遗恨",
+      "遗愿",
+      "惋惜",
+      "叹惋",
+      "叹惜",
+      "痛惜",
+      "抱歉",
+      "失望",
+      "无奈",
+      "可叹",
+      "不舍",
+      "心酸",
+    ],
+  },
+  {
+    id: "happy",
+    label: "开心美好",
+    terms: ["开心", "快乐", "高兴", "欢喜", "美好", "最好", "最佳", "满足", "幸福", "甜蜜", "庆祝", "笑话", "笑声", "放心"],
+  },
+  {
+    id: "sad",
+    label: "伤感痛苦",
+    terms: ["伤感", "难过", "痛苦", "痛心", "痛哭", "眼泪", "哭泣", "失落", "孤独", "冷清", "心碎", "苦楚", "叹息"],
+  },
+  {
+    id: "love",
+    label: "情爱亲密",
+    terms: ["爱情", "喜欢", "想念", "怀念", "思念", "亲密", "约会", "结婚", "拥抱", "亲吻", "心动", "情人", "对方", "陪伴"],
+  },
+  {
+    id: "memory",
+    label: "回忆过去",
+    terms: ["回忆", "记忆", "记得", "记起", "怀旧", "过去", "从前", "当年", "昨日", "曾经", "最初", "后来", "留下"],
+  },
+  {
+    id: "hope",
+    label: "希望理想",
+    terms: ["希望", "理想", "未来", "明天", "信心", "勇敢", "机会", "发展", "光明", "愿望", "期待", "梦想", "成功"],
+  },
+  {
+    id: "anger",
+    label: "冲突决绝",
+    terms: ["愤怒", "生气", "冲突", "争执", "背叛", "放手", "决绝", "退出", "战争", "反抗", "破裂", "绝望", "伤害"],
+  },
+  {
+    id: "anxious",
+    label: "焦虑疑问",
+    terms: ["担心", "害怕", "焦虑", "疑问", "困扰", "压抑", "紧张", "究竟", "到底", "也许", "难道", "迷惘", "不安"],
+  },
+  {
+    id: "calm",
+    label: "安心放松",
+    terms: ["安心", "放心", "放松", "平静", "温柔", "舒服", "自在", "安全", "休息", "睡觉", "安稳", "淡然", "从容"],
+  },
+];
 const cloudClassCache = new Map();
 
 const state = {
@@ -73,6 +137,7 @@ const state = {
   cloudSearch: "",
   cloudFacet: "all",
   cloudCategory: "all",
+  theme: "light",
   mode: "auto",
   query: "",
   loose: false,
@@ -84,6 +149,7 @@ const els = {
   clear: document.querySelector("#clearButton"),
   entryCount: document.querySelector("#entryCount"),
   charCount: document.querySelector("#charCount"),
+  themeToggle: document.querySelector("#themeToggle"),
   resultTitle: document.querySelector("#resultTitle"),
   resultCount: document.querySelector("#resultCount"),
   analysis: document.querySelector("#analysisPanel"),
@@ -118,6 +184,44 @@ function includesAny(text, words) {
 
 function cloudItemText(item) {
   return `${item.word || ""} ${item.original || ""} ${item.pattern || ""}`.toLowerCase();
+}
+
+function semanticBundleForSearch(value) {
+  const raw = value.trim().toLowerCase();
+  if (!raw) return { raw: "", terms: [], labels: [] };
+  const cjk = cjkOnly(raw);
+  const terms = new Set([raw]);
+  const labels = new Set();
+
+  if (cjk) terms.add(cjk);
+  for (const group of SEMANTIC_GROUPS) {
+    const hit = group.terms.some((term) => {
+      const normalized = term.toLowerCase();
+      return raw.includes(normalized) || normalized.includes(raw) || (cjk && (cjk.includes(term) || term.includes(cjk)));
+    });
+    if (!hit) continue;
+    labels.add(group.label);
+    group.terms.forEach((term) => terms.add(term.toLowerCase()));
+  }
+
+  return {
+    raw,
+    terms: Array.from(terms).filter((term) => term.length > 1),
+    labels: Array.from(labels),
+  };
+}
+
+function cloudItemMatchesSemanticTerms(item, terms) {
+  const word = `${item.word || ""} ${item.original || ""}`.toLowerCase();
+  return terms.some((term) => word.includes(term));
+}
+
+function cloudSearchHint() {
+  const bundle = semanticBundleForSearch(state.cloudSearch);
+  if (!bundle.raw) return "按官方词频排序，可用搜索或近义意图缩小范围";
+  if (!bundle.labels.length) return "正在按字面搜索当前词云";
+  const preview = bundle.terms.filter((term) => term !== bundle.raw).slice(0, 7);
+  return `近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}`;
 }
 
 function classifyCloudWord(word) {
@@ -170,6 +274,21 @@ function normalizeLatin(value) {
     .toLowerCase()
     .replace(/ü/g, "yu")
     .replace(/\s+/g, " ");
+}
+
+function applyTheme(theme) {
+  state.theme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = state.theme;
+  document.documentElement.style.colorScheme = state.theme;
+  if (!els.themeToggle) return;
+  els.themeToggle.textContent = state.theme === "dark" ? "☀" : "☾";
+  els.themeToggle.title = state.theme === "dark" ? "切换浅色模式" : "切换深色模式";
+  els.themeToggle.setAttribute("aria-label", els.themeToggle.title);
+}
+
+function initTheme() {
+  const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+  applyTheme(saved === "dark" ? "dark" : "light");
 }
 
 function prepareEntry(entry, index) {
@@ -378,9 +497,9 @@ function getResults(query, mode) {
 }
 
 function filterCloudBySearch(results) {
-  const query = state.cloudSearch.trim().toLowerCase();
-  if (!query) return results;
-  return results.filter((item) => cloudItemText(item).includes(query));
+  const bundle = semanticBundleForSearch(state.cloudSearch);
+  if (!bundle.raw) return results;
+  return results.filter((item) => cloudItemText(item).includes(bundle.raw) || cloudItemMatchesSemanticTerms(item, bundle.terms));
 }
 
 function applyCloudFilters(results) {
@@ -415,22 +534,24 @@ function renderCloudTools(mode, rawResults) {
   const searchedResults = filterCloudBySearch(rawResults);
   const counts = categoryCounts(searchedResults);
   const categories = cloudCategoryDefs();
+  const hint = `<span class="category-hint">${escapeHtml(cloudSearchHint())}</span>`;
   if (!categories.some((category) => category.id === state.cloudCategory)) {
     state.cloudCategory = "all";
   }
 
   if (state.cloudFacet === "all") {
-    els.cloudCategoryBar.innerHTML = `<span class="category-hint">按官方词频排序，可用搜索缩小范围</span>`;
+    els.cloudCategoryBar.innerHTML = hint;
     return;
   }
 
-  els.cloudCategoryBar.innerHTML = categories
-    .map((category) => {
-      const count = counts.get(category.id) || 0;
-      const active = category.id === state.cloudCategory ? " active" : "";
-      return `<button class="category-chip${active}" type="button" data-cloud-category="${escapeHtml(category.id)}">${escapeHtml(category.label)} <span>${count.toLocaleString()}</span></button>`;
-    })
-    .join("");
+  els.cloudCategoryBar.innerHTML =
+    categories
+      .map((category) => {
+        const count = counts.get(category.id) || 0;
+        const active = category.id === state.cloudCategory ? " active" : "";
+        return `<button class="category-chip${active}" type="button" data-cloud-category="${escapeHtml(category.id)}">${escapeHtml(category.label)} <span>${count.toLocaleString()}</span></button>`;
+      })
+      .join("") + hint;
 }
 
 function charAnalysis(query) {
@@ -559,6 +680,12 @@ els.clear.addEventListener("click", () => {
   render();
 });
 
+els.themeToggle?.addEventListener("click", () => {
+  const nextTheme = state.theme === "dark" ? "light" : "dark";
+  window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  applyTheme(nextTheme);
+});
+
 els.loose.addEventListener("change", (event) => {
   state.loose = event.target.checked;
   render();
@@ -623,6 +750,7 @@ els.results.addEventListener("click", async (event) => {
   }
 });
 
+initTheme();
 loadData().catch((error) => {
   els.entryCount.textContent = "载入失败";
   els.analysis.innerHTML = `<span class="chip warn">${escapeHtml(error.message)}</span>`;
