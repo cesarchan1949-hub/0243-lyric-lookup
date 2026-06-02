@@ -23,6 +23,46 @@ const INITIALS = [
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
 const MAX_NON_PATTERN_RESULTS = 140;
+const CLOUD_POS_CATEGORIES = [
+  { id: "all", label: "全部" },
+  { id: "person", label: "人物关系" },
+  { id: "verb", label: "动作状态" },
+  { id: "adj", label: "形容评价" },
+  { id: "time", label: "时间数量" },
+  { id: "place", label: "地点场景" },
+  { id: "noun", label: "名物概念" },
+  { id: "function", label: "连接虚词" },
+];
+const CLOUD_EMOTION_CATEGORIES = [
+  { id: "all", label: "全部" },
+  { id: "positive", label: "美好开心" },
+  { id: "sad", label: "伤感痛苦" },
+  { id: "love", label: "情爱亲密" },
+  { id: "memory", label: "怀念回忆" },
+  { id: "conflict", label: "冲突决绝" },
+  { id: "anxious", label: "焦虑疑问" },
+  { id: "hope", label: "希望理想" },
+  { id: "calm", label: "安心放松" },
+  { id: "neutral", label: "日常中性" },
+];
+const CLOUD_KEYWORDS = {
+  person: ["你", "我", "他", "她", "人", "女人", "男人", "女子", "女生", "先生", "老师", "母亲", "父亲", "妈妈", "老母", "老公", "太太", "朋友", "对方", "自己", "大家", "孩子", "女的"],
+  verb: ["记得", "觉得", "看到", "见到", "发生", "变得", "接触", "结束", "说出", "说起", "唱歌", "带走", "放手", "放开", "发出", "发声", "发展", "了解", "理解", "开始", "退出", "进出", "引起", "送给", "拍手", "看清", "看穿", "看出", "转身", "转头", "倒数"],
+  adj: ["好", "美", "最佳", "最高", "痛苦", "放心", "勇敢", "彻底", "敏感", "冷清", "细心", "永久", "迅速", "正式", "正经", "理想", "满足", "太短", "太好", "太早", "太少", "太高", "最深", "最早", "最终"],
+  time: ["每", "天", "年", "月", "日", "世纪", "时候", "时间", "每天", "那天", "今天", "明天", "昨天", "现在", "过去", "未来", "最初", "最终", "永久", "永不", "瞬间", "半生", "一生", "晚", "早"],
+  place: ["香港", "亚洲", "澳洲", "国家", "社会", "政府", "家", "街", "上班", "上山", "上街", "店", "房", "海", "山", "路", "世界", "世间", "教堂", "教室", "法院"],
+  noun: ["结果", "咖啡", "汽车", "眼睛", "记忆", "意思", "意识", "唱片", "照片", "作品", "借口", "信心", "背包", "眼光", "眼中", "声音", "讯息", "气氛", "眼镜", "戒指", "脑海", "脑袋", "母亲", "角色", "战争", "政府"],
+  function: ["已经", "中的", "到底", "那么", "那些", "这些", "这么", "每一", "有多", "有些", "有的", "有点", "也许", "更多", "至少", "究竟", "对于", "要不", "再不", "再三", "那些", "哪", "各", "某", "由得"],
+  positive: ["美好", "美的", "最好", "最佳", "更好", "开心", "快乐", "笑", "庆祝", "满足", "信心", "有心", "勇敢", "喜欢", "理想", "放心", "有福", "祝", "成功"],
+  sad: ["痛苦", "痛哭", "痛心", "哭", "泪", "伤", "缺", "失", "孤", "冷清", "叹息", "退缩", "压抑", "废话", "背影", "晚餐", "破", "困苦"],
+  love: ["爱", "情", "亲", "母亲", "太太", "女人", "女子", "女生", "约会", "结婚", "对方", "有心", "老公", "朋友", "暗恋", "相亲"],
+  memory: ["记得", "记忆", "记起", "回忆", "已经", "曾经", "过去", "最初", "最终", "从前", "当年", "世纪", "半生", "脑海"],
+  conflict: ["战争", "决不", "永不", "放手", "对手", "抗争", "禁止", "压迫", "杀", "退出", "戒指", "说谎", "破", "废", "死"],
+  anxious: ["究竟", "到底", "也许", "至少", "担心", "怕", "害怕", "困扰", "压抑", "压迫", "紧", "妄想", "暗恋", "敏感"],
+  hope: ["希望", "理想", "未来", "梦", "信心", "勇敢", "光", "最高", "最佳", "更好", "了解", "发展", "有机"],
+  calm: ["放心", "放松", "安心", "安全", "温柔", "细心", "平静", "轻松", "淡", "自在"],
+};
+const cloudClassCache = new Map();
 
 const state = {
   entries: [],
@@ -30,6 +70,9 @@ const state = {
   metadata: null,
   officialCloud: {},
   patternIndex: new Map(),
+  cloudSearch: "",
+  cloudFacet: "all",
+  cloudCategory: "all",
   mode: "auto",
   query: "",
   loose: false,
@@ -44,6 +87,11 @@ const els = {
   resultTitle: document.querySelector("#resultTitle"),
   resultCount: document.querySelector("#resultCount"),
   analysis: document.querySelector("#analysisPanel"),
+  cloudTools: document.querySelector("#cloudTools"),
+  cloudSearch: document.querySelector("#cloudSearchInput"),
+  clearCloudSearch: document.querySelector("#clearCloudSearchButton"),
+  cloudFacetButtons: Array.from(document.querySelectorAll("[data-cloud-facet]")),
+  cloudCategoryBar: document.querySelector("#cloudCategoryBar"),
   results: document.querySelector("#results"),
   empty: document.querySelector("#emptyState"),
   loose: document.querySelector("#looseToggle"),
@@ -62,6 +110,47 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function includesAny(text, words) {
+  return words.some((word) => text.includes(word));
+}
+
+function cloudItemText(item) {
+  return `${item.word || ""} ${item.original || ""} ${item.pattern || ""}`.toLowerCase();
+}
+
+function classifyCloudWord(word) {
+  if (cloudClassCache.has(word)) return cloudClassCache.get(word);
+  const pos = [];
+  const emotion = [];
+
+  for (const category of ["function", "person", "time", "place", "verb", "adj", "noun"]) {
+    if (includesAny(word, CLOUD_KEYWORDS[category])) pos.push(category);
+  }
+  if (!pos.length) pos.push("noun");
+
+  for (const category of ["positive", "sad", "love", "memory", "conflict", "anxious", "hope", "calm"]) {
+    if (includesAny(word, CLOUD_KEYWORDS[category])) emotion.push(category);
+  }
+  if (!emotion.length) emotion.push("neutral");
+
+  const result = { pos, emotion };
+  cloudClassCache.set(word, result);
+  return result;
+}
+
+function cloudCategoriesFor(item, facet) {
+  if (facet === "pos" || facet === "emotion") {
+    return classifyCloudWord(item.word || "")[facet] || [];
+  }
+  return ["all"];
+}
+
+function cloudCategoryDefs() {
+  if (state.cloudFacet === "pos") return CLOUD_POS_CATEGORIES;
+  if (state.cloudFacet === "emotion") return CLOUD_EMOTION_CATEGORIES;
+  return [{ id: "all", label: "全部" }];
 }
 
 function finalForSyllable(syllable) {
@@ -288,6 +377,62 @@ function getResults(query, mode) {
   return [];
 }
 
+function filterCloudBySearch(results) {
+  const query = state.cloudSearch.trim().toLowerCase();
+  if (!query) return results;
+  return results.filter((item) => cloudItemText(item).includes(query));
+}
+
+function applyCloudFilters(results) {
+  const searched = filterCloudBySearch(results);
+  if (state.cloudFacet === "all" || state.cloudCategory === "all") return searched;
+  return searched.filter((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
+}
+
+function categoryCounts(results) {
+  const counts = new Map([["all", results.length]]);
+  if (state.cloudFacet === "all") return counts;
+  for (const item of results) {
+    for (const category of cloudCategoriesFor(item, state.cloudFacet)) {
+      counts.set(category, (counts.get(category) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function renderCloudTools(mode, rawResults) {
+  const shouldShow = mode === "pattern" && Boolean(state.query.trim()) && rawResults.some((item) => item.type === "cloud");
+  els.cloudTools.classList.toggle("hidden", !shouldShow);
+  if (!shouldShow) return;
+
+  if (els.cloudSearch.value !== state.cloudSearch) {
+    els.cloudSearch.value = state.cloudSearch;
+  }
+  els.cloudFacetButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.cloudFacet === state.cloudFacet);
+  });
+
+  const searchedResults = filterCloudBySearch(rawResults);
+  const counts = categoryCounts(searchedResults);
+  const categories = cloudCategoryDefs();
+  if (!categories.some((category) => category.id === state.cloudCategory)) {
+    state.cloudCategory = "all";
+  }
+
+  if (state.cloudFacet === "all") {
+    els.cloudCategoryBar.innerHTML = `<span class="category-hint">按官方词频排序，可用搜索缩小范围</span>`;
+    return;
+  }
+
+  els.cloudCategoryBar.innerHTML = categories
+    .map((category) => {
+      const count = counts.get(category.id) || 0;
+      const active = category.id === state.cloudCategory ? " active" : "";
+      return `<button class="category-chip${active}" type="button" data-cloud-category="${escapeHtml(category.id)}">${escapeHtml(category.label)} <span>${count.toLocaleString()}</span></button>`;
+    })
+    .join("");
+}
+
 function charAnalysis(query) {
   const chars = cjkOnly(query);
   if (!chars) return "";
@@ -360,8 +505,10 @@ function renderResult(item) {
 }
 
 function renderCloudTile(item) {
+  const classes = classifyCloudWord(item.word || "");
+  const title = `第 ${item.rank} 位 · ${classes.pos.join("/")} · ${classes.emotion.join("/")}`;
   return `
-    <button class="word-tile" type="button" data-copy="${escapeHtml(item.word)}" title="第 ${escapeHtml(item.rank)} 位">
+    <button class="word-tile" type="button" data-copy="${escapeHtml(item.word)}" title="${escapeHtml(title)}">
       <span>${escapeHtml(item.word)}</span>
     </button>
   `;
@@ -370,12 +517,19 @@ function renderCloudTile(item) {
 function render() {
   if (!state.entries.length) return;
   const mode = detectQuery(state.query);
-  const results = getResults(state.query, mode);
+  const rawResults = getResults(state.query, mode);
+  const results = mode === "pattern" ? applyCloudFilters(rawResults) : rawResults;
 
   els.analysis.innerHTML = queryAnalysis(state.query, mode);
+  renderCloudTools(mode, rawResults);
   els.empty.classList.toggle("hidden", Boolean(state.query.trim()));
   els.resultTitle.textContent = mode === "pattern" ? "词云" : mode === "rhyme" ? "押韵" : "结果";
-  els.resultCount.textContent = state.query.trim() ? `${results.length.toLocaleString()} 条` : "";
+  els.resultCount.textContent =
+    state.query.trim() && mode === "pattern" && results.length !== rawResults.length
+      ? `${results.length.toLocaleString()} / ${rawResults.length.toLocaleString()} 条`
+      : state.query.trim()
+        ? `${results.length.toLocaleString()} 条`
+        : "";
   els.results.classList.toggle("cloud-results", mode === "pattern");
   els.results.innerHTML = results.map(renderResult).join("");
 }
@@ -410,6 +564,33 @@ els.loose.addEventListener("change", (event) => {
   render();
 });
 
+els.cloudSearch.addEventListener("input", (event) => {
+  state.cloudSearch = event.target.value;
+  scheduleRender();
+});
+
+els.clearCloudSearch.addEventListener("click", () => {
+  state.cloudSearch = "";
+  els.cloudSearch.value = "";
+  els.cloudSearch.focus();
+  render();
+});
+
+els.cloudFacetButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.cloudFacet = button.dataset.cloudFacet;
+    state.cloudCategory = "all";
+    render();
+  });
+});
+
+els.cloudCategoryBar.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-cloud-category]");
+  if (!button) return;
+  state.cloudCategory = button.dataset.cloudCategory;
+  render();
+});
+
 els.segments.forEach((button) => {
   button.addEventListener("click", () => setMode(button.dataset.mode));
 });
@@ -428,10 +609,15 @@ els.results.addEventListener("click", async (event) => {
   if (!button) return;
   try {
     await navigator.clipboard.writeText(button.dataset.copy);
-    button.textContent = "✓";
-    window.setTimeout(() => {
-      button.textContent = "⧉";
-    }, 900);
+    if (button.classList.contains("word-tile")) {
+      button.classList.add("copied");
+      window.setTimeout(() => button.classList.remove("copied"), 900);
+    } else {
+      button.textContent = "✓";
+      window.setTimeout(() => {
+        button.textContent = "⧉";
+      }, 900);
+    }
   } catch {
     button.textContent = "!";
   }
