@@ -22,6 +22,7 @@ const INITIALS = [
 
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
+const VALID_FINAL_RE = /^[a-z]+$/;
 const MAX_NON_PATTERN_RESULTS = 140;
 const THEME_STORAGE_KEY = "0243-theme";
 const SCRIPT_STORAGE_KEY = "0243-script";
@@ -807,6 +808,7 @@ const state = {
   metadata: null,
   officialCloud: {},
   officialEntries: [],
+  termFinalIndex: new Map(),
   patternIndex: new Map(),
   cloudSearch: "",
   cloudFacet: "all",
@@ -963,14 +965,14 @@ function officialSearchResult(item, score) {
 }
 
 function officialTermFinals(item) {
-  const chars = cjkOnly(item.traditional || item.simplified);
-  const last = chars[chars.length - 1];
-  const finals = new Set();
-  if (!last) return finals;
-  readingsForChar(last).forEach((reading) => {
-    if (reading.f) finals.add(reading.f);
+  const exact = new Set();
+  [item.traditional, item.simplified].forEach((term) => {
+    for (const final of indexedTermFinals(term)) {
+      exact.add(final);
+    }
   });
-  return finals;
+  if (exact.size) return exact;
+  return finalsForCjkTerm(item.simplified || item.traditional);
 }
 
 function scoreOfficialWord(item, needles, normalizedNeedle) {
@@ -1011,6 +1013,61 @@ function readingsForChar(char) {
     }
   }
   return readings;
+}
+
+function addTermFinal(index, term, final) {
+  const cleanedFinal = cleanFinal(final);
+  const pure = cjkOnly(term || "");
+  if (!cleanedFinal || !pure) return;
+  for (const variant of scriptVariants(pure)) {
+    const key = cjkOnly(variant);
+    if (!key) continue;
+    const finals = index.get(key) || new Set();
+    finals.add(cleanedFinal);
+    index.set(key, finals);
+  }
+}
+
+function buildTermFinalIndex(entries) {
+  const index = new Map();
+  entries.forEach((entry) => {
+    if (!entry.f) return;
+    addTermFinal(index, entry.t, entry.f);
+    addTermFinal(index, entry.s, entry.f);
+  });
+  return index;
+}
+
+function indexedTermFinals(term) {
+  const finals = new Set();
+  const pure = cjkOnly(term || "");
+  if (!pure) return finals;
+  for (const variant of scriptVariants(pure)) {
+    for (const final of state.termFinalIndex.get(cjkOnly(variant)) || []) {
+      finals.add(final);
+    }
+  }
+  return finals;
+}
+
+function primaryFinalsForChar(char) {
+  const finals = new Set();
+  const readings = readingsForChar(char).filter((reading) => cleanFinal(reading.f));
+  if (!readings.length) return finals;
+  const topCount = Math.max(...readings.map((reading) => Number(reading.n) || 0));
+  const primary = topCount > 0 ? readings.filter((reading) => (Number(reading.n) || 0) === topCount) : readings.slice(0, 1);
+  primary.forEach((reading) => finals.add(cleanFinal(reading.f)));
+  return finals;
+}
+
+function finalsForCjkTerm(term) {
+  const chars = Array.from(cjkOnly(term || ""));
+  if (!chars.length) return new Set();
+  if (chars.length === 1) return primaryFinalsForChar(chars[0]);
+  const indexed = indexedTermFinals(term);
+  if (indexed.size) return indexed;
+  const last = chars[chars.length - 1];
+  return last ? primaryFinalsForChar(last) : new Set();
 }
 
 function updateStaticText() {
@@ -1197,6 +1254,11 @@ function finalForSyllable(syllable) {
   return base;
 }
 
+function cleanFinal(final) {
+  const normalized = String(final || "").trim().toLowerCase().replace(/[1-6]/g, "");
+  return VALID_FINAL_RE.test(normalized) ? normalized : "";
+}
+
 function normalizeLatin(value) {
   return value
     .trim()
@@ -1257,6 +1319,7 @@ async function loadData() {
   state.metadata = metadata;
   state.officialCloud = officialCloud.patterns || {};
   buildScriptMaps(lexicon.entries, state.officialCloud);
+  state.termFinalIndex = buildTermFinalIndex(lexicon.entries);
   state.officialEntries = buildOfficialEntries(state.officialCloud);
   state.entries = lexicon.entries.map(prepareEntry);
   state.patternIndex = buildPatternIndex(state.entries);
@@ -1289,11 +1352,8 @@ function finalsFromSuffix(suffix) {
 
   if (CJK_RE.test(cleaned)) {
     CJK_RE.lastIndex = 0;
-    for (const char of cjkOnly(cleaned)) {
-      const readings = readingsForChar(char);
-      readings.forEach((reading) => {
-        if (reading.f) finals.add(reading.f);
-      });
+    for (const final of finalsForCjkTerm(cleaned)) {
+      finals.add(final);
     }
     return finals;
   }
@@ -1301,7 +1361,8 @@ function finalsFromSuffix(suffix) {
   const latin = normalizeLatin(cleaned);
   const parts = latin.split(/\s+/).filter(Boolean);
   for (const part of parts.length ? parts : [latin]) {
-    finals.add(TONE_RE.test(part) ? finalForSyllable(part) : part.replace(/[1-6]/g, ""));
+    const final = cleanFinal(finalForSyllable(part));
+    if (final) finals.add(final);
   }
   return finals;
 }
