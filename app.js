@@ -806,6 +806,7 @@ const state = {
   chars: {},
   metadata: null,
   officialCloud: {},
+  officialEntries: [],
   patternIndex: new Map(),
   cloudSearch: "",
   cloudFacet: "all",
@@ -910,6 +911,84 @@ function displayCloudWord(simplified, traditional) {
   return simplified || simplifyText(traditional || "");
 }
 
+function buildOfficialEntries(patterns) {
+  const entries = [];
+  for (const [pattern, words] of Object.entries(patterns || {})) {
+    for (const word of words || []) {
+      const simplified = word.s || simplifyText(word.t || "");
+      const traditional = word.t || traditionalizeText(simplified);
+      if (!simplified && !traditional) continue;
+      entries.push({
+        simplified,
+        traditional,
+        original: word.t || word.s,
+        pattern,
+        rank: word.rank || entries.length + 1,
+        length: cjkOnly(simplified || traditional).length,
+      });
+    }
+  }
+  return entries.sort((left, right) => {
+    if (left.pattern !== right.pattern) return left.pattern.localeCompare(right.pattern);
+    return left.rank - right.rank;
+  });
+}
+
+function officialCloudResult(item, score, extras = {}) {
+  return {
+    type: "cloud",
+    word: displayCloudWord(item.simplified, item.traditional),
+    simplified: item.simplified,
+    traditional: item.traditional,
+    original: item.original || item.traditional || item.simplified,
+    rank: item.rank,
+    pattern: item.pattern,
+    score,
+    ...extras,
+  };
+}
+
+function officialSearchResult(item, score) {
+  return {
+    type: "official",
+    word: displayCloudWord(item.simplified, item.traditional),
+    simplified: item.simplified,
+    traditional: item.traditional,
+    original: item.original || item.traditional || item.simplified,
+    rank: item.rank,
+    pattern: item.pattern,
+    score,
+    length: item.length,
+  };
+}
+
+function officialTermFinals(item) {
+  const chars = cjkOnly(item.traditional || item.simplified);
+  const last = chars[chars.length - 1];
+  const finals = new Set();
+  if (!last) return finals;
+  readingsForChar(last).forEach((reading) => {
+    if (reading.f) finals.add(reading.f);
+  });
+  return finals;
+}
+
+function scoreOfficialWord(item, needles, normalizedNeedle) {
+  const texts = [
+    item.traditional || "",
+    item.simplified || "",
+    simplifyText(item.traditional || ""),
+    traditionalizeText(item.simplified || ""),
+  ].filter(Boolean);
+  let base = 0;
+  if (texts.some((text) => needles.includes(text))) base = 9000;
+  else if (texts.some((text) => needles.some((value) => text.startsWith(value)))) base = 7600;
+  else if (texts.some((text) => needles.some((value) => text.includes(value)))) base = 6200;
+  else if ([...normalizedNeedle].every((char) => simplifyText(`${item.simplified}${item.traditional}`).includes(char))) base = 2600;
+  if (!base) return 0;
+  return base - item.length * 4 - item.rank / 100;
+}
+
 function scriptVariants(value) {
   const variants = new Set();
   const text = String(value || "");
@@ -962,7 +1041,8 @@ function updateStaticText() {
 
 function updateStats() {
   if (!state.metadata) return;
-  els.entryCount.textContent = scriptText(`${state.metadata.entryCount.toLocaleString()} 词条`);
+  const officialCount = state.officialEntries.length || state.metadata.entryCount;
+  els.entryCount.textContent = scriptText(`${officialCount.toLocaleString()} 词库项`);
   els.charCount.textContent = scriptText(`${state.metadata.charCount.toLocaleString()} 单字`);
 }
 
@@ -1177,6 +1257,7 @@ async function loadData() {
   state.metadata = metadata;
   state.officialCloud = officialCloud.patterns || {};
   buildScriptMaps(lexicon.entries, state.officialCloud);
+  state.officialEntries = buildOfficialEntries(state.officialCloud);
   state.entries = lexicon.entries.map(prepareEntry);
   state.patternIndex = buildPatternIndex(state.entries);
   updateStats();
@@ -1234,45 +1315,16 @@ function scorePattern(entry, pattern) {
 function searchPattern(query) {
   const pattern = query.replace(/[^0243]/g, "");
   if (!pattern) return [];
-  const official = state.officialCloud[pattern];
-  if (official?.length) {
-    return official.map((word) => ({
-      type: "cloud",
-      word: displayCloudWord(word.s, word.t),
-      simplified: word.s || simplifyText(word.t || ""),
-      traditional: word.t || traditionalizeText(word.s || ""),
-      original: word.t || word.s,
-      rank: word.rank,
-      pattern,
-      score: 5000 - word.rank,
-    }));
-  }
+  if (!Object.hasOwn(state.officialCloud, pattern)) return [];
 
-  const results = (state.patternIndex.get(pattern) || []).map((entry, index) => ({
-    type: "cloud",
-    entry,
-    word: displayEntryTerm(entry),
-    simplified: entry.s || simplifyText(entry.t || ""),
-    traditional: entry.t || traditionalizeText(entry.s || ""),
-    original: entry.t || entry.s,
-    rank: index + 1,
-    pattern,
-    score: 2500 - index,
-  }));
+  const results = state.officialEntries
+    .filter((item) => item.pattern === pattern)
+    .map((item) => officialCloudResult(item, 9000 - item.rank));
+
   if (state.loose) {
-    for (const entry of state.entries) {
-      if (entry.p !== pattern && entry.p.includes(pattern)) {
-        results.push({
-          type: "cloud",
-          entry,
-          word: displayEntryTerm(entry),
-          simplified: entry.s || simplifyText(entry.t || ""),
-          traditional: entry.t || traditionalizeText(entry.s || ""),
-          original: entry.t || entry.s,
-          rank: results.length + 1,
-          pattern: entry.p,
-          score: scorePattern(entry, pattern),
-        });
+    for (const item of state.officialEntries) {
+      if (item.pattern !== pattern && item.pattern.includes(pattern)) {
+        results.push(officialCloudResult(item, 4200 - item.rank / 10));
       }
     }
   }
@@ -1304,16 +1356,17 @@ function searchRhyme(query) {
   const finals = finalsFromSuffix(suffix);
   if (!finals.size) return [];
 
-  return state.entries
-    .map((entry) => {
-      const patternScore = scorePattern(entry, pattern);
-      if (!patternScore) return { entry, score: 0 };
-      const finalScore = finals.has(entry.f) ? 420 : 0;
-      return { entry, score: finalScore ? patternScore + finalScore : 0 };
+  if (!Object.hasOwn(state.officialCloud, pattern)) return [];
+
+  return state.officialEntries
+    .filter((item) => item.pattern === pattern)
+    .map((item) => {
+      const matchedFinal = Array.from(officialTermFinals(item)).find((final) => finals.has(final));
+      if (!matchedFinal) return null;
+      return officialCloudResult(item, 9400 - item.rank, { final: matchedFinal });
     })
-    .filter((item) => item.score > 0)
-    .sort(sortResults)
-    .map((item, index) => cloudResultFromEntry(item.entry, index + 1, item.score));
+    .filter(Boolean)
+    .sort(sortResults);
 }
 
 function searchChinese(query) {
@@ -1321,17 +1374,13 @@ function searchChinese(query) {
   if (!needle) return [];
   const needles = Array.from(scriptVariants(needle)).filter(Boolean);
   const normalizedNeedle = simplifyText(needle);
-  return state.entries
-    .map((entry) => {
-      let score = 0;
-      const entryTexts = [entry.t || "", entry.s || "", simplifyText(entry.t || ""), traditionalizeText(entry.s || "")].filter(Boolean);
-      if (entryTexts.some((text) => needles.includes(text))) score = 1200;
-      else if (entryTexts.some((text) => needles.some((value) => text.startsWith(value)))) score = 930;
-      else if (entryTexts.some((text) => needles.some((value) => text.includes(value)))) score = 760;
-      else if ([...normalizedNeedle].every((char) => simplifyText(entry.pure).includes(char))) score = 420;
-      return { entry, score: score - entry.l };
+
+  return state.officialEntries
+    .map((item) => {
+      const score = scoreOfficialWord(item, needles, normalizedNeedle);
+      return score ? officialSearchResult(item, score) : null;
     })
-    .filter((item) => item.score > 0)
+    .filter(Boolean)
     .sort(sortResults)
     .slice(0, MAX_NON_PATTERN_RESULTS);
 }
@@ -1360,8 +1409,12 @@ function searchJyutping(query) {
 
 function sortResults(left, right) {
   if (right.score !== left.score) return right.score - left.score;
-  if (left.entry.l !== right.entry.l) return left.entry.l - right.entry.l;
-  return left.entry.t.localeCompare(right.entry.t, "zh-Hans");
+  const leftLength = left.entry?.l ?? left.length ?? cjkOnly(left.simplified || left.word || "").length;
+  const rightLength = right.entry?.l ?? right.length ?? cjkOnly(right.simplified || right.word || "").length;
+  if (leftLength !== rightLength) return leftLength - rightLength;
+  const leftText = left.entry?.t || left.traditional || left.word || "";
+  const rightText = right.entry?.t || right.traditional || right.word || "";
+  return leftText.localeCompare(rightText, "zh-Hans");
 }
 
 function getResults(query, mode) {
@@ -1498,6 +1551,7 @@ function queryAnalysis(query, mode) {
 
 function renderResult(item) {
   if (item.type === "cloud") return renderCloudTile(item);
+  if (item.type === "official") return renderOfficialResult(item);
   const entry = item.entry;
   const definition = entry.d ? `<p class="definition">${escapeHtml(entry.d)}</p>` : "";
   const sourceLabel = state.metadata?.sourceLabels?.[entry.src] || entry.src || "";
@@ -1515,6 +1569,24 @@ function renderResult(item) {
         <p class="source">${escapeHtml(sourceLabel)}</p>
       </div>
       <button class="copy-button" type="button" title="复制" data-copy="${escapeHtml(displayTerm)}">⧉</button>
+    </article>
+  `;
+}
+
+function renderOfficialResult(item) {
+  const displayTerm = displayCloudWord(item.simplified, item.traditional);
+  const source = scriptText(`0243.hk 词库 · 第 ${item.rank} 位`);
+  return `
+    <article class="result-card">
+      <div>
+        <div class="term-row">
+          <span class="term">${escapeHtml(displayTerm)}</span>
+          <span class="pattern">${escapeHtml(item.pattern)}</span>
+          <span class="chip">${escapeHtml(source)}</span>
+        </div>
+        <p class="source">${escapeHtml(scriptText("按 0243.hk 词频排序"))}</p>
+      </div>
+      <button class="copy-button" type="button" title="${escapeHtml(scriptText("复制"))}" data-copy="${escapeHtml(displayTerm)}">⧉</button>
     </article>
   `;
 }
