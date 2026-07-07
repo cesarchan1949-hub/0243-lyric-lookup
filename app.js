@@ -24,7 +24,7 @@ const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
 const VALID_FINAL_RE = /^[a-z]+$/;
 const MAX_NON_PATTERN_RESULTS = 140;
-const THEME_STORAGE_KEY = "0243-theme";
+const THEME_STORAGE_KEY = "octopus-cantonese-theme";
 const SCRIPT_STORAGE_KEY = "0243-script";
 const STATIC_TRADITIONAL_PAIRS = {
   万: "萬",
