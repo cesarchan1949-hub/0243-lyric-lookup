@@ -813,7 +813,7 @@ const state = {
   cloudSearch: "",
   cloudFacet: "all",
   cloudCategory: "all",
-  theme: "light",
+  theme: "dark",
   script: "simplified",
   toSimplified: new Map(),
   toTraditional: new Map(),
@@ -1073,7 +1073,7 @@ function finalsForCjkTerm(term) {
 function updateStaticText() {
   document.documentElement.lang = state.script === "traditional" ? "zh-Hant" : "zh-Hans";
   document.documentElement.dataset.script = state.script;
-  document.title = scriptText("0243 粤语查字");
+  document.title = scriptText("八爪鱼粤语填词");
 
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.dataset.sourceText ||= node.textContent;
@@ -1279,7 +1279,7 @@ function applyTheme(theme) {
 
 function initTheme() {
   const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
-  applyTheme(saved === "dark" ? "dark" : "light");
+  applyTheme(saved === "light" ? "light" : "dark");
 }
 
 function prepareEntry(entry, index) {
