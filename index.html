@@ -3,11 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07080b" />
     <meta
       name="description"
       content="八爪鱼粤语填词，支持 0243 数字词云、押韵词云、粤拼和汉字查询。"
     />
     <title>八爪鱼粤语填词</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23ffd84d'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='34' font-family='sans-serif' font-weight='700' fill='%2317140d'%3E%E5%85%AB%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="styles.css" />
     <script src="app.js" defer></script>
   </head>
@@ -15,6 +17,7 @@
     <div class="app-shell">
       <header class="topbar">
         <div class="brand">
+          <div class="brand-mark" aria-hidden="true">八</div>
           <div>
             <p class="eyebrow" data-i18n="eyebrow">粤语填词工具</p>
             <h1 data-i18n="appTitle">八爪鱼粤语填词</h1>
@@ -83,10 +86,16 @@
               </button>
             </div>
             <div class="cloud-controls">
-              <div class="mini-segmented" aria-label="智能分类方式">
-                <button class="mini-segment active" type="button" data-cloud-facet="all" data-i18n="all">全部</button>
-                <button class="mini-segment" type="button" data-cloud-facet="pos" data-i18n="pos">词性</button>
-                <button class="mini-segment" type="button" data-cloud-facet="emotion" data-i18n="emotion">情绪</button>
+              <div class="cloud-control-row">
+                <div class="mini-segmented" aria-label="智能分类方式">
+                  <button class="mini-segment active" type="button" data-cloud-facet="all" data-i18n="all">全部</button>
+                  <button class="mini-segment" type="button" data-cloud-facet="pos" data-i18n="pos">词性</button>
+                  <button class="mini-segment" type="button" data-cloud-facet="emotion" data-i18n="emotion">情绪</button>
+                </div>
+                <label class="quality-toggle">
+                  <input id="commonOnlyToggle" type="checkbox" />
+                  <span data-i18n="commonOnly">仅看高频词</span>
+                </label>
               </div>
               <div id="cloudCategoryBar" class="category-bar"></div>
             </div>
@@ -109,6 +118,10 @@
           </div>
 
           <div id="results" class="results" aria-live="polite"></div>
+          <div id="loadMore" class="load-more hidden" aria-live="polite">
+            <button id="loadMoreButton" type="button">继续显示</button>
+            <span id="loadMoreStatus"></span>
+          </div>
         </section>
       </main>
     </div>

@@ -24,6 +24,8 @@ const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/g;
 const TONE_RE = /[1-6]$/;
 const VALID_FINAL_RE = /^[a-z]+$/;
 const MAX_NON_PATTERN_RESULTS = 140;
+const CLOUD_BATCH_SIZE = 240;
+const COMMON_RANK_LIMIT = 1600;
 const THEME_STORAGE_KEY = "octopus-cantonese-theme";
 const SCRIPT_STORAGE_KEY = "0243-script";
 const STATIC_TRADITIONAL_PAIRS = {
@@ -813,6 +815,9 @@ const state = {
   cloudSearch: "",
   cloudFacet: "all",
   cloudCategory: "all",
+  commonOnly: false,
+  cloudVisible: CLOUD_BATCH_SIZE,
+  cloudRenderSignature: "",
   theme: "dark",
   script: "simplified",
   toSimplified: new Map(),
@@ -838,7 +843,11 @@ const els = {
   clearCloudSearch: document.querySelector("#clearCloudSearchButton"),
   cloudFacetButtons: Array.from(document.querySelectorAll("[data-cloud-facet]")),
   cloudCategoryBar: document.querySelector("#cloudCategoryBar"),
+  commonOnly: document.querySelector("#commonOnlyToggle"),
   results: document.querySelector("#results"),
+  loadMore: document.querySelector("#loadMore"),
+  loadMoreButton: document.querySelector("#loadMoreButton"),
+  loadMoreStatus: document.querySelector("#loadMoreStatus"),
   empty: document.querySelector("#emptyState"),
   loose: document.querySelector("#looseToggle"),
   segments: Array.from(document.querySelectorAll(".segment")),
@@ -860,8 +869,8 @@ function escapeHtml(value) {
 
 function registerScriptPair(simplified, traditional) {
   if (!simplified || !traditional || simplified === traditional) return;
-  state.toTraditional.set(simplified, traditional);
-  state.toSimplified.set(traditional, simplified);
+  if (!state.toTraditional.has(simplified)) state.toTraditional.set(simplified, traditional);
+  if (!state.toSimplified.has(traditional)) state.toSimplified.set(traditional, simplified);
 }
 
 function registerStringVariants(simplified, traditional) {
@@ -874,13 +883,22 @@ function registerStringVariants(simplified, traditional) {
 function buildScriptMaps(entries, officialPatterns) {
   state.toSimplified.clear();
   state.toTraditional.clear();
+  const simplifiedChars = new Set();
   for (const [simplified, traditional] of Object.entries(STATIC_TRADITIONAL_PAIRS)) {
     registerScriptPair(simplified, traditional);
+    simplifiedChars.add(simplified);
   }
-  entries.forEach((entry) => registerStringVariants(entry.s || "", entry.t || ""));
+  entries.forEach((entry) => {
+    Array.from(entry.s || "").forEach((char) => simplifiedChars.add(char));
+    registerStringVariants(entry.s || "", entry.t || "");
+  });
   Object.values(officialPatterns || {})
     .flat()
-    .forEach((word) => registerStringVariants(word.s || "", word.t || ""));
+    .forEach((word) => {
+      Array.from(word.s || "").forEach((char) => simplifiedChars.add(char));
+      registerStringVariants(word.s || "", word.t || "");
+    });
+  simplifiedChars.forEach((char) => state.toSimplified.set(char, char));
   TRADITIONAL_IDENTITY_OVERRIDES.forEach((char) => state.toTraditional.set(char, char));
   cloudClassCache.clear();
 }
@@ -916,10 +934,14 @@ function displayCloudWord(simplified, traditional) {
 function buildOfficialEntries(patterns) {
   const entries = [];
   for (const [pattern, words] of Object.entries(patterns || {})) {
+    const seen = new Set();
     for (const word of words || []) {
       const simplified = word.s || simplifyText(word.t || "");
       const traditional = word.t || traditionalizeText(simplified);
       if (!simplified && !traditional) continue;
+      const key = simplified || traditional;
+      if (seen.has(key)) continue;
+      seen.add(key);
       entries.push({
         simplified,
         traditional,
@@ -1178,30 +1200,36 @@ function semanticBundleForSearch(value) {
 
 function cloudSearchScore(item, bundle) {
   const fullText = cloudItemText(item);
-  const word = simplifyText(`${item.word || ""} ${item.simplified || ""} ${item.traditional || ""} ${item.original || ""}`).toLowerCase();
+  const wordForms = [item.word, item.simplified, item.traditional, item.original]
+    .filter(Boolean)
+    .map((word) => simplifyText(word).toLowerCase());
+  const word = wordForms.join(" ");
   let score = fullText.includes(bundle.raw) ? 600 : 0;
   for (const term of bundle.terms) {
-    if (term !== bundle.raw && fullText.includes(term)) score += 260;
+    if (term === bundle.raw) continue;
+    if (wordForms.includes(term)) score += 520;
+    else if (wordForms.some((form) => form.includes(term))) score += 280;
   }
   if (bundle.labels.length) {
-    for (const root of bundle.roots) {
-      if (word.includes(root)) score += 48;
-    }
+    const matchedRoots = bundle.roots.filter((root) => word.includes(root));
+    if (matchedRoots.length >= 2) score += matchedRoots.length * 64;
   }
   return score;
 }
 
 function cloudSearchHint(mode) {
   const bundle = semanticBundleForSearch(state.cloudSearch);
+  const qualityHint = state.commonOnly ? " · 仅显示前1600位纯中文高频词" : "";
   if (!bundle.raw) {
-    return scriptText(mode === "rhyme"
+    const base = mode === "rhyme"
       ? "按0243与韵母匹配排序，可用搜索或近义意图缩小范围"
-      : "按官方词频排序，可用搜索或近义意图缩小范围");
+      : "按官方词频排序，可用搜索或近义意图缩小范围";
+    return scriptText(`${base}${qualityHint}`);
   }
-  if (!bundle.labels.length) return scriptText("正在按字面搜索当前词云");
+  if (!bundle.labels.length) return scriptText(`正在按字面搜索当前词云${qualityHint}`);
   const preview = bundle.terms.filter((term) => term !== bundle.raw).slice(0, 7);
   const roots = bundle.roots.slice(0, 8).join("、");
-  return scriptText(`近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}${roots ? ` · 字根 ${roots}` : ""}`);
+  return scriptText(`近义扩展：${bundle.labels.join("、")} · ${preview.join("、")}${roots ? ` · 双字根匹配 ${roots}` : ""}${qualityHint}`);
 }
 
 function classifyCloudWord(word) {
@@ -1491,6 +1519,11 @@ function isCloudMode(mode) {
   return mode === "pattern" || mode === "rhyme";
 }
 
+function isHighFrequencyCloudItem(item) {
+  const word = String(item.simplified || item.traditional || item.word || "");
+  return item.rank <= COMMON_RANK_LIMIT && /^\p{Script=Han}+$/u.test(word);
+}
+
 function filterCloudBySearch(results) {
   const bundle = semanticBundleForSearch(state.cloudSearch);
   if (!bundle.raw) return results;
@@ -1505,13 +1538,14 @@ function filterCloudBySearch(results) {
 
 function applyCloudFilters(results) {
   const searched = filterCloudBySearch(results);
-  if (state.cloudFacet === "all" || state.cloudCategory === "all") return searched;
-  const hasCategory = searched.some((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
+  const qualityFiltered = state.commonOnly ? searched.filter(isHighFrequencyCloudItem) : searched;
+  if (state.cloudFacet === "all" || state.cloudCategory === "all") return qualityFiltered;
+  const hasCategory = qualityFiltered.some((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
   if (!hasCategory) {
     state.cloudCategory = "all";
-    return searched;
+    return qualityFiltered;
   }
-  return searched.filter((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
+  return qualityFiltered.filter((item) => cloudCategoriesFor(item, state.cloudFacet).includes(state.cloudCategory));
 }
 
 function categoryCounts(results) {
@@ -1533,12 +1567,14 @@ function renderCloudTools(mode, rawResults) {
   if (els.cloudSearch.value !== state.cloudSearch) {
     els.cloudSearch.value = state.cloudSearch;
   }
+  els.commonOnly.checked = state.commonOnly;
   els.cloudFacetButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.cloudFacet === state.cloudFacet);
   });
 
   const searchedResults = filterCloudBySearch(rawResults);
-  const counts = categoryCounts(searchedResults);
+  const qualityResults = state.commonOnly ? searchedResults.filter(isHighFrequencyCloudItem) : searchedResults;
+  const counts = categoryCounts(qualityResults);
   const categories = cloudCategoryDefs();
   const hint = `<span class="category-hint">${escapeHtml(cloudSearchHint(mode))}</span>`;
   if (!categories.some((category) => category.id === state.cloudCategory) || (state.cloudCategory !== "all" && !counts.get(state.cloudCategory))) {
@@ -1670,6 +1706,14 @@ function render() {
   const rawResults = getResults(state.query, mode);
   const cloudMode = isCloudMode(mode);
   const results = cloudMode ? applyCloudFilters(rawResults) : rawResults;
+  const renderSignature = cloudMode
+    ? [mode, state.query, state.loose, state.cloudSearch, state.cloudFacet, state.cloudCategory, state.commonOnly].join("|")
+    : "";
+  if (renderSignature !== state.cloudRenderSignature) {
+    state.cloudRenderSignature = renderSignature;
+    state.cloudVisible = CLOUD_BATCH_SIZE;
+  }
+  const visibleResults = cloudMode ? results.slice(0, state.cloudVisible) : results;
 
   els.analysis.innerHTML = queryAnalysis(state.query, mode);
   renderCloudTools(mode, rawResults);
@@ -1682,7 +1726,16 @@ function render() {
         ? scriptText(`${results.length.toLocaleString()} 条`)
         : "";
   els.results.classList.toggle("cloud-results", cloudMode);
-  els.results.innerHTML = results.map(renderResult).join("");
+  els.results.innerHTML = visibleResults.map(renderResult).join("");
+
+  const hasMore = cloudMode && visibleResults.length < results.length;
+  els.loadMore.classList.toggle("hidden", !hasMore);
+  if (hasMore) {
+    els.loadMoreButton.textContent = scriptText("继续显示");
+    els.loadMoreStatus.textContent = scriptText(`已显示 ${visibleResults.length.toLocaleString()} / ${results.length.toLocaleString()}，下滑自动载入`);
+  } else {
+    els.loadMoreStatus.textContent = "";
+  }
 }
 
 function scheduleRender() {
@@ -1730,6 +1783,12 @@ els.loose.addEventListener("change", (event) => {
 els.cloudSearch.addEventListener("input", (event) => {
   state.cloudSearch = event.target.value;
   scheduleRender();
+});
+
+els.commonOnly.addEventListener("change", (event) => {
+  state.commonOnly = event.target.checked;
+  state.cloudCategory = "all";
+  render();
 });
 
 els.clearCloudSearch.addEventListener("click", () => {
@@ -1785,6 +1844,21 @@ els.results.addEventListener("click", async (event) => {
     button.textContent = "!";
   }
 });
+
+els.loadMoreButton.addEventListener("click", () => {
+  state.cloudVisible += CLOUD_BATCH_SIZE;
+  render();
+});
+
+const loadMoreObserver = new IntersectionObserver(
+  (entries) => {
+    if (!entries.some((entry) => entry.isIntersecting) || els.loadMore.classList.contains("hidden")) return;
+    state.cloudVisible += CLOUD_BATCH_SIZE;
+    render();
+  },
+  { rootMargin: "500px 0px" },
+);
+loadMoreObserver.observe(els.loadMore);
 
 initTheme();
 initScript();
