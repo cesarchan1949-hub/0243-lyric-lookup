@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#07080b" />
+    <meta name="theme-color" content="#10110f" />
     <meta
       name="description"
       content="八爪鱼粤语填词，支持 0243 数字词云、押韵词云、粤拼和汉字查询。"
     />
     <title>八爪鱼粤语填词</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23ffd84d'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='34' font-family='sans-serif' font-weight='700' fill='%2317140d'%3E%E5%85%AB%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" href="assets/octopus-logo.png" />
     <link rel="stylesheet" href="styles.css" />
     <script src="app.js" defer></script>
   </head>
@@ -17,12 +17,23 @@
     <div class="app-shell">
       <header class="topbar">
         <div class="brand">
-          <div class="brand-mark" aria-hidden="true">八</div>
+          <div class="brand-mark" aria-hidden="true">
+            <img class="brand-logo" src="assets/octopus-logo.png" alt="" />
+          </div>
           <div>
             <p class="eyebrow" data-i18n="eyebrow">粤语填词工具</p>
             <h1 data-i18n="appTitle">八爪鱼粤语填词</h1>
           </div>
         </div>
+        <nav class="primary-nav" aria-label="查询模式">
+          <div class="segmented" role="tablist">
+            <button class="segment active" type="button" data-mode="auto" data-i18n="modeAuto">自动</button>
+            <button class="segment" type="button" data-mode="pattern">0243</button>
+            <button class="segment" type="button" data-mode="rhyme" data-i18n="modeRhyme">押韵</button>
+            <button class="segment" type="button" data-mode="chinese" data-i18n="modeChinese">汉字</button>
+            <button class="segment" type="button" data-mode="jyutping" data-i18n="modeJyutping">粤拼</button>
+          </div>
+        </nav>
         <div class="stats" aria-live="polite">
           <span id="entryCount">载入中</span>
           <span id="charCount"></span>
@@ -54,13 +65,6 @@
           </div>
 
           <div class="control-row">
-            <div class="segmented" role="tablist" aria-label="查询模式">
-              <button class="segment active" type="button" data-mode="auto" data-i18n="modeAuto">自动</button>
-              <button class="segment" type="button" data-mode="pattern">0243</button>
-              <button class="segment" type="button" data-mode="rhyme" data-i18n="modeRhyme">押韵</button>
-              <button class="segment" type="button" data-mode="chinese" data-i18n="modeChinese">汉字</button>
-              <button class="segment" type="button" data-mode="jyutping" data-i18n="modeJyutping">粤拼</button>
-            </div>
             <label class="toggle">
               <input id="looseToggle" type="checkbox" />
               <span data-i18n="loose">宽松包含</span>

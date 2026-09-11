@@ -1299,6 +1299,7 @@ function applyTheme(theme) {
   state.theme = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = state.theme;
   document.documentElement.style.colorScheme = state.theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", state.theme === "dark" ? "#10110f" : "#e9eae5");
   if (!els.themeToggle) return;
   els.themeToggle.textContent = state.theme === "dark" ? "☀" : "☾";
   els.themeToggle.title = scriptText(state.theme === "dark" ? "切换浅色模式" : "切换深色模式");
@@ -1690,11 +1691,12 @@ function renderOfficialResult(item) {
 
 function renderCloudTile(item) {
   const classes = classifyCloudWord(item.word || "");
+  const rankClass = item.rank <= 6 ? " rank-top" : item.rank <= 60 ? " rank-high" : "";
   const rhyme = item.final ? ` · ${scriptText("韵")} ${item.final}` : "";
   const jyutping = item.jyutping ? ` · ${item.jyutping}` : "";
   const title = scriptText(`第 ${item.rank} 位 · ${item.pattern || ""}${rhyme}${jyutping} · ${classes.pos.join("/")} · ${classes.emotion.join("/")}`);
   return `
-    <button class="word-tile" type="button" data-copy="${escapeHtml(item.word)}" title="${escapeHtml(title)}">
+    <button class="word-tile${rankClass}" type="button" data-copy="${escapeHtml(item.word)}" title="${escapeHtml(title)}">
       <span>${escapeHtml(item.word)}</span>
     </button>
   `;
@@ -1831,15 +1833,8 @@ els.results.addEventListener("click", async (event) => {
   if (!button) return;
   try {
     await navigator.clipboard.writeText(button.dataset.copy);
-    if (button.classList.contains("word-tile")) {
-      button.classList.add("copied");
-      window.setTimeout(() => button.classList.remove("copied"), 900);
-    } else {
-      button.textContent = "✓";
-      window.setTimeout(() => {
-        button.textContent = "⧉";
-      }, 900);
-    }
+    button.classList.add("copied");
+    window.setTimeout(() => button.classList.remove("copied"), 900);
   } catch {
     button.textContent = "!";
   }
