@@ -127,9 +127,7 @@ input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: var
 .icon-moon { --icon: url("assets/icons/moon.svg"); }
 .icon-grid { --icon: url("assets/icons/grid-2x2.svg"); width: 17px; height: 17px; }
 .icon-list { --icon: url("assets/icons/list.svg"); width: 18px; height: 18px; }
-.intro { padding: 17px 22px 18px; }
-.intro p { margin: 0; font-size: 30px; font-weight: 350; line-height: 1.35; }
-.intro em { font-style: normal; color: var(--accent-text); }
+.workspace { padding-top: 20px; }
 .search-box {
   position: sticky; top: 10px; z-index: 20;
   display: flex; align-items: center; gap: 14px;
@@ -279,8 +277,6 @@ input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: var
   .brand h1::after { display: none; }
   .eyebrow { font-size: 8px; }
   .brand-mark, .brand-logo { width: 36px; height: 36px; }
-  .intro { padding: 20px 8px; }
-  .intro p { font-size: 26px; }
   .search-box { padding-left: 16px; min-height: 65px; gap: 8px; border-radius: 22px; }
   .search-box input { font-size: 25px; }
   .search-box input::placeholder { font-size: 14px; }
@@ -302,7 +298,6 @@ input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: var
   .stats .theme-toggle { grid-column: 1; }
   .stats .script-toggle { grid-column: 2; }
   .segment { min-height: 36px; }
-  .intro p { font-size: 24px; }
   .control-row { align-items: flex-start; min-height: 40px; margin-top: 10px; }
   .toggle { font-size: 11px; min-height: 28px; gap: 6px; }
   .chip { font-size: 11px; min-height: 26px; padding-inline: 8px; }
