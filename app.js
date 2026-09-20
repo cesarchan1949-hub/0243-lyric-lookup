@@ -816,6 +816,8 @@ const state = {
   cloudFacet: "all",
   cloudCategory: "all",
   commonOnly: false,
+  resultSort: "default",
+  resultView: "grid",
   cloudVisible: CLOUD_BATCH_SIZE,
   cloudRenderSignature: "",
   theme: "dark",
@@ -1299,9 +1301,9 @@ function applyTheme(theme) {
   state.theme = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = state.theme;
   document.documentElement.style.colorScheme = state.theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", state.theme === "dark" ? "#10110f" : "#e9eae5");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", state.theme === "dark" ? "#101319" : "#f4f6fa");
   if (!els.themeToggle) return;
-  els.themeToggle.textContent = state.theme === "dark" ? "☀" : "☾";
+  els.themeToggle.innerHTML = `<span class="ui-icon icon-${state.theme === "dark" ? "sun" : "moon"}" aria-hidden="true"></span>`;
   els.themeToggle.title = scriptText(state.theme === "dark" ? "切换浅色模式" : "切换深色模式");
   els.themeToggle.setAttribute("aria-label", els.themeToggle.title);
 }
@@ -1698,6 +1700,7 @@ function renderCloudTile(item) {
   return `
     <button class="word-tile${rankClass}" type="button" data-copy="${escapeHtml(item.word)}" title="${escapeHtml(title)}">
       <span>${escapeHtml(item.word)}</span>
+      <small class="tile-detail">${escapeHtml(scriptText(`0243 ${item.pattern || ""} · 第 ${item.rank} 位`))}</small>
     </button>
   `;
 }
@@ -1707,9 +1710,13 @@ function render() {
   const mode = detectQuery(state.query);
   const rawResults = getResults(state.query, mode);
   const cloudMode = isCloudMode(mode);
-  const results = cloudMode ? applyCloudFilters(rawResults) : rawResults;
+  const results = cloudMode ? [...applyCloudFilters(rawResults)] : rawResults;
+  if (cloudMode && state.resultSort !== "default") {
+    const direction = state.resultSort === "short" ? 1 : -1;
+    results.sort((a, b) => direction * (Array.from(a.word || "").length - Array.from(b.word || "").length));
+  }
   const renderSignature = cloudMode
-    ? [mode, state.query, state.loose, state.cloudSearch, state.cloudFacet, state.cloudCategory, state.commonOnly].join("|")
+    ? [mode, state.query, state.loose, state.cloudSearch, state.cloudFacet, state.cloudCategory, state.commonOnly, state.resultSort].join("|")
     : "";
   if (renderSignature !== state.cloudRenderSignature) {
     state.cloudRenderSignature = renderSignature;
@@ -1728,6 +1735,8 @@ function render() {
         ? scriptText(`${results.length.toLocaleString()} 条`)
         : "";
   els.results.classList.toggle("cloud-results", cloudMode);
+  els.results.classList.toggle("list-view", cloudMode && state.resultView === "list");
+  document.querySelector("#resultControls").classList.toggle("hidden", !cloudMode || !state.query.trim());
   els.results.innerHTML = visibleResults.map(renderResult).join("");
 
   const hasMore = cloudMode && visibleResults.length < results.length;
@@ -1756,6 +1765,34 @@ function setMode(mode) {
 els.input.addEventListener("input", (event) => {
   state.query = event.target.value;
   scheduleRender();
+});
+
+document.querySelector("#focusSearch").addEventListener("click", () => els.input.focus());
+document.querySelector("#submitQuery").addEventListener("click", () => {
+  window.clearTimeout(state.timer);
+  state.query = els.input.value;
+  render();
+});
+els.input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.isComposing) {
+    window.clearTimeout(state.timer);
+    render();
+  }
+});
+document.querySelector("#resultSort").addEventListener("change", (event) => {
+  state.resultSort = event.target.value;
+  render();
+});
+document.querySelectorAll("[data-view]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.resultView = button.dataset.view;
+    document.querySelectorAll("[data-view]").forEach((item) => {
+      const active = item.dataset.view === state.resultView;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-pressed", String(active));
+    });
+    render();
+  });
 });
 
 els.clear.addEventListener("click", () => {

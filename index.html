@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#10110f" />
+    <meta name="theme-color" content="#101319" />
     <meta
       name="description"
       content="八爪鱼粤语填词，支持 0243 数字词云、押韵词云、粤拼和汉字查询。"
@@ -21,8 +21,8 @@
             <img class="brand-logo" src="assets/octopus-logo.png" alt="" />
           </div>
           <div>
-            <p class="eyebrow" data-i18n="eyebrow">粤语填词工具</p>
             <h1 data-i18n="appTitle">八爪鱼粤语填词</h1>
+            <p class="eyebrow">CANTONESE LYRIC WORDS</p>
           </div>
         </div>
         <nav class="primary-nav" aria-label="查询模式">
@@ -35,6 +35,7 @@
           </div>
         </nav>
         <div class="stats" aria-live="polite">
+          <button class="focus-search icon-button" id="focusSearch" type="button" title="搜索" aria-label="搜索" data-i18n-title="search" data-i18n-aria="search"><span class="ui-icon icon-search" aria-hidden="true"></span></button>
           <span id="entryCount">载入中</span>
           <span id="charCount"></span>
           <button class="script-toggle" id="scriptToggle" type="button" title="切换繁体显示" aria-label="切换繁体显示">
@@ -47,6 +48,9 @@
       </header>
 
       <main class="workspace">
+        <div class="intro">
+          <p><span data-i18n="introStart">用词，</span><br /><em data-i18n="introAccent">让情感</em><span data-i18n="introEnd">有更大的形状。</span></p>
+        </div>
         <section class="search-panel" aria-label="查字工作台">
           <div class="search-box">
             <input
@@ -62,19 +66,20 @@
             <button class="icon-button" id="clearButton" type="button" title="清空" data-i18n-title="clear">
               ×
             </button>
+            <button class="submit-button" id="submitQuery" type="button" title="查询" aria-label="查询" data-i18n-title="submit" data-i18n-aria="submit"><span class="ui-icon icon-arrow" aria-hidden="true"></span></button>
           </div>
 
           <div class="control-row">
+            <div id="analysisPanel" class="analysis-panel" aria-live="polite"></div>
             <label class="toggle">
               <input id="looseToggle" type="checkbox" />
               <span data-i18n="loose">宽松包含</span>
             </label>
           </div>
 
-          <div id="analysisPanel" class="analysis-panel" aria-live="polite"></div>
-
           <div id="cloudTools" class="cloud-tools hidden" aria-label="词云筛选">
             <div class="cloud-search">
+              <span class="ui-icon icon-search" aria-hidden="true"></span>
               <input
                 id="cloudSearchInput"
                 type="search"
@@ -108,6 +113,17 @@
           <div class="result-head">
             <h2 id="resultTitle" data-i18n="results">结果</h2>
             <span id="resultCount"></span>
+            <div id="resultControls" class="result-controls hidden">
+              <select id="resultSort" aria-label="结果排序" data-i18n-aria="sort">
+                <option value="default" data-i18n="sortDefault">默认排序</option>
+                <option value="short" data-i18n="sortShort">字数从少到多</option>
+                <option value="long" data-i18n="sortLong">字数从多到少</option>
+              </select>
+              <div class="view-switch" role="group" aria-label="显示方式">
+                <button type="button" data-view="grid" class="active" aria-pressed="true" title="网格显示" aria-label="网格显示" data-i18n-title="grid" data-i18n-aria="grid"><span class="ui-icon icon-grid" aria-hidden="true"></span></button>
+                <button type="button" data-view="list" aria-pressed="false" title="列表显示" aria-label="列表显示" data-i18n-title="list" data-i18n-aria="list"><span class="ui-icon icon-list" aria-hidden="true"></span></button>
+              </div>
+            </div>
           </div>
 
           <div id="emptyState" class="empty-state">
@@ -128,6 +144,7 @@
           </div>
         </section>
       </main>
+      <footer class="site-footer"><span data-i18n="footer">更多灵感，始于一个词</span></footer>
     </div>
   </body>
 </html>
